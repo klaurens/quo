@@ -6,8 +6,6 @@ from io import BytesIO
 import glob
 
 
-
-
 def get_similar_products_file(
     project_id,
     location,
@@ -66,11 +64,6 @@ def get_similar_products_file(
 
     return results
 
-def load_image_from_url(url):
-    response = requests.get(url)
-    image_bytes = BytesIO(response.content)
-    # return Image.open(image_bytes)
-    return image_bytes
 
 def get_related_images(input_image):
     project_id = "argon-producer-437209-a7"
@@ -89,12 +82,12 @@ def get_related_images(input_image):
         file_path=file_path,
         filter=filter,
         max_results=max_results,
-    ) 
+    )
 
-    print(sim)
     return sim
 
-st.title('Quo Trials')
+
+st.title("Quo Trials")
 
 st.write("Upload an image or provide an image URL")
 # Image upload input
@@ -105,34 +98,49 @@ image_url = st.text_input("...or enter an image URL:")
 
 input_image = None
 if uploaded_file is not None:
-    input_image = uploaded_file.getvalue() # bytes
+    input_image = uploaded_file.getvalue()  # bytes
 elif image_url:
     try:
-        input_image = load_image_from_url(image_url)
+        response = requests.get(image_url)
+        input_image = BytesIO(response.content).read()
     except Exception as e:
         st.error(f"Error loading image from URL: {e}")
 
 # If we have an input image, display it and find related images
 if input_image:
     # Display the input image
-    st.image(input_image, caption="Input Image", use_column_width=True)
+    st.image(input_image, caption="Input Image", use_column_width="auto")
 
     # Get related images (mock function)
     related_images = get_related_images(input_image)
-    product_images = []
+    product_images = {}
     for related_img in related_images:
-        all_image = glob.glob(f'products/**/{related_img.product.display_name}/*.[jpg][png]*')
+        product_name = related_img.product.display_name
+        all_image = glob.glob(f"products/**/{product_name}/*.[jpg][png]*")
         if all_image:
-            product_images.append(all_image[0])
+            img_loc = all_image[0]
+            product_images[product_name] = {
+                "img_loc": img_loc,
+                "score": related_img.score,
+                "brand": img_loc.split('/')[1]
+            }
 
     # Display related images side-by-side
     st.write("Similar Images:")
     cols = st.columns(5)  # Create 5 columns for the images to be displayed side by side
 
     # Loop over related images and display them
-    for i, img_location in enumerate(product_images):
-        with open(img_location, 'rb') as f:
+    for i, product in enumerate(product_images.items()):
+        product_name, brand, img_location, score = (
+            product[0],
+            product[1]["brand"],
+            product[1]["img_loc"],
+            product[1]["score"],
+        )
+        with open(img_location, "rb") as f:
             img = f.read()
-            cols[i % 5].image(img, use_column_width=True)
+            cols[i % 5].image(
+                img, use_column_width=True, caption=f"{brand}  \n{product_name}  \n{round(score, 5)}"
+            )
 else:
     st.info("Please upload an image or enter a URL to continue.")
