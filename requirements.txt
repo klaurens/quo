@@ -2,3 +2,4 @@ google-cloud-vision
 google-cloud-storage
 bs4
 streamlit
+matplotlib
