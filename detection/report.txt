@@ -1,0 +1,32 @@
+TensorFlow 2.0 Upgrade Script
+-----------------------------
+Converted 1 files
+Detected 2 issues that require attention
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+File: inference.py
+--------------------------------------------------------------------------------
+inference.py:228:6: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+inference.py:238:2: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+================================================================================
+Detailed log follows:
+
+================================================================================
+--------------------------------------------------------------------------------
+Processing file 'inference.py'
+ outputting to 'inference_v2.py'
+--------------------------------------------------------------------------------
+
+90:9: INFO: Renamed 'tf.gfile.Open' to 'tf.io.gfile.GFile'
+123:18: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+151:12: INFO: Renamed 'tf.train.Saver' to 'tf.compat.v1.train.Saver'
+155:13: INFO: Renamed 'tf.ConfigProto' to 'tf.compat.v1.ConfigProto'
+160:9: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+165:20: INFO: Renamed 'tf.gfile.Glob' to 'tf.io.gfile.glob'
+170:13: INFO: Renamed 'tf.gfile.GFile' to 'tf.io.gfile.GFile'
+228:6: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+236:7: INFO: Renamed 'tf.gfile.GFile' to 'tf.io.gfile.GFile'
+238:2: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+248:2: INFO: Renamed 'tf.app.run' to 'tf.compat.v1.app.run'
+--------------------------------------------------------------------------------
+
