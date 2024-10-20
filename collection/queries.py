@@ -41,3 +41,77 @@ def get_product_query():
               }
             }
             """
+
+
+def get_product_details_query():
+    return """
+            query PDPGetLayoutQuery($shopDomain: String, $productKey: String, $layoutID: String, $apiVersion: Float, $userLocation: pdpUserLocation, $extParam: String, $tokonow: pdpTokoNow, $deviceID: String) {
+              pdpGetLayout(shopDomain: $shopDomain, productKey: $productKey, layoutID: $layoutID, apiVersion: $apiVersion, userLocation: $userLocation, extParam: $extParam, tokonow: $tokonow, deviceID: $deviceID) {
+                basicInfo {
+                id: productID
+                shopID
+                shopName
+                url
+                category {
+                    id
+                    name
+                    title
+                    breadcrumbURL
+                    detail {
+                    id
+                    name
+                    breadcrumbURL
+                    }
+                  }
+                }
+                components {
+                data {
+                    ...ProductMedia
+                    ...ProductHighlight
+                    ...ProductDetail
+                    ...ProductVariant
+                  }
+                }
+              }
+            }
+
+            fragment ProductMedia on pdpDataProductMedia {
+            media {
+                urlMaxRes: URLMaxRes
+              }
+            }
+
+            fragment ProductHighlight on pdpDataProductContent {
+            name
+            price {
+                value
+                currency
+                priceFmt
+                slashPriceFmt
+                discPercentage
+              }
+            }
+
+            fragment ProductDetail on pdpDataProductDetail {
+            content {
+                title
+                subtitle
+                applink
+                showAtFront
+                isAnnotation
+              }
+            }
+
+            fragment ProductVariant on pdpDataProductVariant {
+            parentID
+            defaultChild
+            children {
+                productID
+                price
+                optionID
+                optionName
+                productName
+                productURL
+              }
+            }
+            """
