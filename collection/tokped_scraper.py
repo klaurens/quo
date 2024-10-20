@@ -81,7 +81,6 @@ def get_brand_listing(brand_uri):
         response = requests.post(ARRAY_REQUEST_URI, headers=headers, json=data)
 
         # Output the response from the request
-        print(response.json())
         listings.append(response.json())
         i += 1
         if response.json()[0]["data"]["GetShopProduct"]["links"]["next"] == "":
