@@ -3,3 +3,4 @@ google-cloud-storage
 bs4
 streamlit
 matplotlib
+jsonpath-ng

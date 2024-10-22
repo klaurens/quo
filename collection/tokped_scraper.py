@@ -121,3 +121,8 @@ def get_item_details(product_url):
 
     response = requests.post(PDP_REQUEST_URI, headers=headers, json=data)
     return response.json()
+
+def get_image(image_url, brand_uri=''):
+    image = requests.get(image_url, headers=get_headers(brand_uri))
+    if image.status_code == 200:
+        return image.content
