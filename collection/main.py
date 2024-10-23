@@ -221,9 +221,7 @@ def upload_to_gcp(file_path, bucket):
 
 def push_to_gcp():
     # Get all jpg and png files
-    jpg_files = glob.glob(f"{DETAILS_DIR}/**/**/*.jpg")
-    png_files = glob.glob(f"{DETAILS_DIR}/**/**/*.png")
-    image_files = jpg_files + png_files
+    file_path = glob.glob(f"{DETAILS_DIR}/**/**/*")
 
     client = storage.Client()
     bucket = client.get_bucket(BUCKET_NAME)
@@ -231,7 +229,7 @@ def push_to_gcp():
     # Use ThreadPoolExecutor to upload files concurrently
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         # Submit each upload task to the executor
-        executor.map(partial(upload_to_gcp, bucket=bucket), image_files)
+        executor.map(partial(upload_to_gcp, bucket=bucket), file_path)
 
 
 if __name__ == "__main__":
