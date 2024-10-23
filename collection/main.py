@@ -229,7 +229,7 @@ def push_to_gcp():
     bucket = client.get_bucket(BUCKET_NAME)
 
     # Use ThreadPoolExecutor to upload files concurrently
-    with concurrent.futures.ThreadPoolExecutor(max_workers=32) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         # Submit each upload task to the executor
         executor.map(partial(upload_to_gcp, bucket=bucket), image_files)
 
