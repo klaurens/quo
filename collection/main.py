@@ -9,7 +9,10 @@ import concurrent.futures
 from typing import List
 from functools import partial
 import time
+from google.cloud import storage
+from dotenv import load_dotenv
 
+load_dotenv()
 
 # Configuration constants
 IMAGE_MIN_BYTES = 5000
@@ -19,7 +22,29 @@ SOURCE_FILE = "brands.txt"
 DETAILS_DIR = "details"
 LISTING_DIR = "listing"
 UNIFIED_DIR = "unified"
+BUCKET_NAME = os.getenv("BUCKET_NAME")
+BUCKET_PREFIX = os.getenv("BUCKET_PREFIX")
+WRITE_CLOUD = os.getenv("WRITE_CLOUD") == "True"
+OVERWRITE = os.getenv("OVERWRITE") == "True"
+MAGIC_NUMBERS = {
+    b'\xFF\xD8': 'jpg',
+    b'\x89\x50\x4E\x47': 'png',
+    b'\x47\x49\x46': 'gif',
+    b'\x42\x4D': 'bmp',
+    b'\x49\x49': 'tiff',  # Little-endian TIFF
+    b'\x4D\x4D': 'tiff',  # Big-endian TIFF
+}
 
+def upload_to_gcs(file_path, content):
+    """Uploads content to Google Cloud Storage."""
+    client = storage.Client()
+    bucket = client.bucket(BUCKET_NAME)
+    blob_name = f"{BUCKET_PREFIX}/{file_path}"
+    blob = bucket.blob(blob_name)
+
+    # Write content to the blob
+    blob.upload_from_string(content)
+    logger.info(f"Uploaded to GCS: {blob_name}")
 
 def create_dir_if_not_exists(directory: str):
     """Create a directory if it doesn't exist."""
@@ -34,10 +59,14 @@ def read_brands(source_file: str) -> List[str]:
 
 def save_json(data: dict, file_path: str):
     """Saves data to a JSON file."""
-    create_dir_if_not_exists(os.path.dirname(file_path))
-    with open(file_path, "w") as write_file:
-        json.dump(data, write_file)
-    logger.info(f"Saved data to {file_path}")
+    if WRITE_CLOUD:
+        json_data = json.dumps(data)
+        upload_to_gcs(BUCKET_NAME, file_path, json_data)
+    else:
+        create_dir_if_not_exists(os.path.dirname(file_path))
+        with open(file_path, "w") as write_file:
+            json.dump(data, write_file)
+        logger.info(f"Saved data to {file_path}")
 
 
 def scrape_listing(source_file: str = SOURCE_FILE):
@@ -50,7 +79,11 @@ def scrape_listing(source_file: str = SOURCE_FILE):
             brand_listing = get_brand_listing(brand_uri=brand)
 
             file_path = f"{LISTING_DIR}/{brand}/listing_{WRITE_DATE}.json"
-            save_json(brand_listing, file_path)
+            if WRITE_CLOUD:
+                json_data = json.dumps(brand_listing)
+                upload_to_gcs(file_path, json_data)
+            else:
+                save_json(brand_listing, file_path)
         except Exception as e:
             logger.error(f"Error scraping brand {brand}: {str(e)}")
 
@@ -76,19 +109,25 @@ def unify_listings():
         except Exception as e:
             logger.error(f"Error processing file {json_file}: {str(e)}")
 
-    save_json(scraped_products, UNIFIED_FILE)
+    if WRITE_CLOUD:
+        json_data = json.dumps(scraped_products)
+        upload_to_gcs(UNIFIED_FILE, json_data)
+    else:
+        save_json(scraped_products, UNIFIED_FILE)
 
 
-def scrape_product_details(product: dict):
+def scrape_product_details(product: dict, overwrite=OVERWRITE):
     """Scrapes product details for a single product."""
     try:
-        product_name = product["name"]
+        product_name = product["name"].replace('/', '')
         product_brand = product["brand"]
         product_url = product["product_url"]
 
-        product_details = get_item_details(product_url)
         file_path = f"{DETAILS_DIR}/{product_brand}/{product_name}/{WRITE_DATE}.json"
-        save_json(product_details, file_path)
+        file_exists = os.path.isfile(file_path)
+        if not file_exists or overwrite:
+            product_details = get_item_details(product_url)
+            save_json(product_details, file_path)
     except Exception as e:
         logger.error(f"Error scraping product {product['name']}: {str(e)}")
 
@@ -105,20 +144,25 @@ def scrape_products():
         executor.map(scrape_product_details, products)
 
 
-def fetch_image(link, dir_parts):
+def fetch_image(link, dir_parts, overwrite=OVERWRITE):
     """Fetch and write image file"""
     image_name = link.split("/")[-1]
     product_brand = dir_parts[1]
-    product_name = dir_parts[2]
+    product_name = dir_parts[2].replace('/', '')
 
     file_path = f"{DETAILS_DIR}/{product_brand}/{product_name}/{image_name}"
-    image_file = get_image(link, brand_uri=product_brand)
-    if len(image_file) >= IMAGE_MIN_BYTES:
-        with open(file_path, "wb") as f:
-            f.write(image_file)
-        logger.info(f"Image saved at {file_path}")
-    else:
-        logger.info(f"Skipped saving image: {link} (too small/broken image)")
+    file_exists = os.path.isfile(file_path)
+    if not file_exists or overwrite:
+        image_file = get_image(link, brand_uri=product_brand)
+        if len(image_file) >= IMAGE_MIN_BYTES:
+            if WRITE_CLOUD:
+                upload_to_gcs(file_path, image_file)
+            else:
+                with open(file_path, "wb") as f:
+                    f.write(image_file)
+                logger.info(f"Image saved at {file_path}")
+        else:
+            logger.info(f"Skipped saving image: {link} (too small/broken image)")
 
 
 def scrape_images():
@@ -134,10 +178,29 @@ def scrape_images():
 
             dir_parts = json_file.split("/")
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                executor.map(partial(fetch_image, dir_parts=dir_parts), links)
+                executor.map(
+                    partial(fetch_image, dir_parts=dir_parts, overwrite=False), links
+                )
 
         except Exception as e:
             logger.error(f"Error processing images for {json_file}: {str(e)}")
+
+def add_missing_extensions():
+    files = glob.glob(f"{DETAILS_DIR}/**/**/*")
+    files = [file for file in files if '.' not in file]
+    for file in files:
+        if not os.path.isfile(file):
+            continue
+        with open(file, 'rb') as f:
+            file_header = f.read(8)  # Read the first 8 bytes, enough for most formats
+
+        # Check the file header against known magic numbers
+        for magic, fmt in MAGIC_NUMBERS.items():
+            if file_header.startswith(magic):
+                os.rename(file, f'{file}.{fmt}')
+                logger.info(f'Renaming {file} to {file}.{fmt}')
+                break
+        
 
 
 if __name__ == "__main__":
@@ -149,6 +212,7 @@ if __name__ == "__main__":
         unify_listings()
         scrape_products()
         scrape_images()
+        add_missing_extensions()
 
         end_time = time.time()
         logger.info("Finished Scraping Run")
