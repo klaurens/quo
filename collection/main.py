@@ -113,6 +113,7 @@ def scrape_products():
 
 
 def fetch_image(link, dir_parts):
+    """Fetch and write image file"""
     image_name = link.split("/")[-1]
     product_brand = dir_parts[1]
     product_name = dir_parts[2]
@@ -124,7 +125,7 @@ def fetch_image(link, dir_parts):
             f.write(image_file)
         logging.info(f"Image saved at {file_path}")
     else:
-        logging.info(f"Skipped saving image: {link} (too small)")
+        logging.info(f"Skipped saving image: {link} (too small/broken image)")
 
 
 def scrape_images():
@@ -132,7 +133,7 @@ def scrape_images():
     json_files = glob.glob(f"{DETAILS_DIR}/**/**/*.json")
     parser = parse("$..urlMaxRes")
 
-    for json_file in json_files[:3]:
+    for json_file in json_files:
         try:
             with open(json_file, "r") as jf:
                 data = json.load(jf)
