@@ -9,6 +9,7 @@ import concurrent.futures
 from typing import List
 from functools import partial
 import time
+import re
 from google.cloud import storage
 from dotenv import load_dotenv
 
@@ -26,6 +27,7 @@ BUCKET_NAME = os.getenv("BUCKET_NAME")
 BUCKET_PREFIX = os.getenv("BUCKET_PREFIX")
 WRITE_CLOUD = os.getenv("WRITE_CLOUD") == "True"
 OVERWRITE = os.getenv("OVERWRITE") == "True"
+OVERWRITE_CLOUD = os.getenv("OVERWRITE") == "True"
 MAGIC_NUMBERS = {
     b"\xFF\xD8": "jpg",
     b"\x89\x50\x4E\x47": "png",
@@ -114,16 +116,18 @@ def unify_listings():
         save_json(scraped_products, UNIFIED_FILE)
 
 
-def scrape_product_details(product: dict, overwrite=OVERWRITE):
+def scrape_product_details(product: dict):
     """Scrapes product details for a single product."""
     try:
-        product_name = product["name"].replace("/", "")
+        product_name = product["name"]
         product_brand = product["brand"]
         product_url = product["product_url"]
 
+        product_name = re.sub(r"[\n\t\/]+", " ", product_name).strip()
+
         file_path = f"{DETAILS_DIR}/{product_brand}/{product_name}/{WRITE_DATE}.json"
         file_exists = os.path.isfile(file_path)
-        if not file_exists or overwrite:
+        if not file_exists or OVERWRITE:
             product_details = get_item_details(product_url)
             save_json(product_details, file_path)
     except Exception as e:
@@ -142,7 +146,7 @@ def scrape_products():
         executor.map(scrape_product_details, products)
 
 
-def fetch_image(link, dir_parts, overwrite=OVERWRITE):
+def fetch_image(link, dir_parts):
     """Fetch and write image file"""
     image_name = link.split("/")[-1]
     product_brand = dir_parts[1]
@@ -150,7 +154,7 @@ def fetch_image(link, dir_parts, overwrite=OVERWRITE):
 
     file_path = f"{DETAILS_DIR}/{product_brand}/{product_name}/{image_name}"
     file_exists = os.path.isfile(file_path)
-    if not file_exists or overwrite:
+    if not file_exists or OVERWRITE:
         image_file = get_image(link, brand_uri=product_brand)
         if len(image_file) >= IMAGE_MIN_BYTES:
             if WRITE_CLOUD:
@@ -177,7 +181,7 @@ def scrape_images():
             dir_parts = json_file.split("/")
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
                 executor.map(
-                    partial(fetch_image, dir_parts=dir_parts, overwrite=False), links
+                    partial(fetch_image, dir_parts=dir_parts), links
                 )
 
         except Exception as e:
@@ -210,11 +214,11 @@ def upload_to_gcp(file_path, bucket):
         # Create a new blob (object) in the bucket
         blob = bucket.blob(blob_name)
 
-        # Upload the file
-        blob.upload_from_filename(file_path)
+        if not blob.exists() or OVERWRITE_CLOUD:
+            # Upload the file
+            blob.upload_from_filename(file_path)
+            logger.info(f"Uploaded {file_path} to gs://{BUCKET_NAME}/{blob_name}")
 
-        # Log success
-        logger.info(f"Uploaded {file_path} to gs://{BUCKET_NAME}/{blob_name}")
     except Exception as e:
         logger.error(f"Failed to upload {file_path}: {str(e)}")
 
