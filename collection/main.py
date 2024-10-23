@@ -27,13 +27,10 @@ BUCKET_PREFIX = os.getenv("BUCKET_PREFIX")
 WRITE_CLOUD = os.getenv("WRITE_CLOUD") == "True"
 OVERWRITE = os.getenv("OVERWRITE") == "True"
 MAGIC_NUMBERS = {
-    b'\xFF\xD8': 'jpg',
-    b'\x89\x50\x4E\x47': 'png',
-    b'\x47\x49\x46': 'gif',
-    b'\x42\x4D': 'bmp',
-    b'\x49\x49': 'tiff',  # Little-endian TIFF
-    b'\x4D\x4D': 'tiff',  # Big-endian TIFF
+    b"\xFF\xD8": "jpg",
+    b"\x89\x50\x4E\x47": "png",
 }
+
 
 def upload_to_gcs(file_path, content):
     """Uploads content to Google Cloud Storage."""
@@ -45,6 +42,7 @@ def upload_to_gcs(file_path, content):
     # Write content to the blob
     blob.upload_from_string(content)
     logger.info(f"Uploaded to GCS: {blob_name}")
+
 
 def create_dir_if_not_exists(directory: str):
     """Create a directory if it doesn't exist."""
@@ -119,7 +117,7 @@ def unify_listings():
 def scrape_product_details(product: dict, overwrite=OVERWRITE):
     """Scrapes product details for a single product."""
     try:
-        product_name = product["name"].replace('/', '')
+        product_name = product["name"].replace("/", "")
         product_brand = product["brand"]
         product_url = product["product_url"]
 
@@ -148,7 +146,7 @@ def fetch_image(link, dir_parts, overwrite=OVERWRITE):
     """Fetch and write image file"""
     image_name = link.split("/")[-1]
     product_brand = dir_parts[1]
-    product_name = dir_parts[2].replace('/', '')
+    product_name = dir_parts[2].replace("/", "")
 
     file_path = f"{DETAILS_DIR}/{product_brand}/{product_name}/{image_name}"
     file_exists = os.path.isfile(file_path)
@@ -185,22 +183,55 @@ def scrape_images():
         except Exception as e:
             logger.error(f"Error processing images for {json_file}: {str(e)}")
 
+
 def add_missing_extensions():
     files = glob.glob(f"{DETAILS_DIR}/**/**/*")
-    files = [file for file in files if '.' not in file]
+    files = [file for file in files if "." not in file]
     for file in files:
         if not os.path.isfile(file):
             continue
-        with open(file, 'rb') as f:
+        with open(file, "rb") as f:
             file_header = f.read(8)  # Read the first 8 bytes, enough for most formats
 
         # Check the file header against known magic numbers
         for magic, fmt in MAGIC_NUMBERS.items():
             if file_header.startswith(magic):
-                os.rename(file, f'{file}.{fmt}')
-                logger.info(f'Renaming {file} to {file}.{fmt}')
+                os.rename(file, f"{file}.{fmt}")
+                logger.info(f"Renaming {file} to {file}.{fmt}")
                 break
-        
+
+
+def upload_to_gcp(file_path, bucket):
+    """Uploads a single file to GCP"""
+    try:
+        # Generate the relative path in GCP bucket
+        blob_name = os.path.join(BUCKET_PREFIX, os.path.relpath(file_path, DETAILS_DIR))
+
+        # Create a new blob (object) in the bucket
+        blob = bucket.blob(blob_name)
+
+        # Upload the file
+        blob.upload_from_filename(file_path)
+
+        # Log success
+        logger.info(f"Uploaded {file_path} to gs://{BUCKET_NAME}/{blob_name}")
+    except Exception as e:
+        logger.error(f"Failed to upload {file_path}: {str(e)}")
+
+
+def push_to_gcp():
+    # Get all jpg and png files
+    jpg_files = glob.glob(f"{DETAILS_DIR}/**/**/*.jpg")
+    png_files = glob.glob(f"{DETAILS_DIR}/**/**/*.png")
+    image_files = jpg_files + png_files
+
+    client = storage.Client()
+    bucket = client.get_bucket(BUCKET_NAME)
+
+    # Use ThreadPoolExecutor to upload files concurrently
+    with concurrent.futures.ThreadPoolExecutor(max_workers=32) as executor:
+        # Submit each upload task to the executor
+        executor.map(partial(upload_to_gcp, bucket=bucket), image_files)
 
 
 if __name__ == "__main__":
@@ -213,6 +244,7 @@ if __name__ == "__main__":
         scrape_products()
         scrape_images()
         add_missing_extensions()
+        push_to_gcp()
 
         end_time = time.time()
         logger.info("Finished Scraping Run")
