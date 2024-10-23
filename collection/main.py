@@ -1,13 +1,14 @@
 from tokped_scraper import get_brand_listing, get_item_details, get_image
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import glob
 import json
 from jsonpath_ng import parse
-import logging
+from logger import logger
 import concurrent.futures
 from typing import List
 from functools import partial
+import time
 
 
 # Configuration constants
@@ -18,14 +19,6 @@ SOURCE_FILE = "brands.txt"
 DETAILS_DIR = "details"
 LISTING_DIR = "listing"
 UNIFIED_DIR = "unified"
-
-# Logging setup
-logging.basicConfig(
-    filename=f"scraper-{WRITE_DATE}.log",
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    filemode="w",
-)
 
 
 def create_dir_if_not_exists(directory: str):
@@ -44,22 +37,22 @@ def save_json(data: dict, file_path: str):
     create_dir_if_not_exists(os.path.dirname(file_path))
     with open(file_path, "w") as write_file:
         json.dump(data, write_file)
-    logging.info(f"Saved data to {file_path}")
+    logger.info(f"Saved data to {file_path}")
 
 
 def scrape_listing(source_file: str = SOURCE_FILE):
     """Scrapes all listings from brands."""
-    brands = read_brands(source_file)
+    brands = read_brands(source_file)[:2]
 
     for brand in brands:
         try:
-            logging.info(f"Fetching brand list for {brand}")
+            logger.info(f"Fetching brand list for {brand}")
             brand_listing = get_brand_listing(brand_uri=brand)
 
             file_path = f"{LISTING_DIR}/{brand}/listing_{WRITE_DATE}.json"
             save_json(brand_listing, file_path)
         except Exception as e:
-            logging.error(f"Error scraping brand {brand}: {str(e)}")
+            logger.error(f"Error scraping brand {brand}: {str(e)}")
 
 
 def unify_listings():
@@ -81,7 +74,7 @@ def unify_listings():
             values = parser.find(data)
             scraped_products.extend([v.value for v in values])
         except Exception as e:
-            logging.error(f"Error processing file {json_file}: {str(e)}")
+            logger.error(f"Error processing file {json_file}: {str(e)}")
 
     save_json(scraped_products, UNIFIED_FILE)
 
@@ -97,7 +90,7 @@ def scrape_product_details(product: dict):
         file_path = f"{DETAILS_DIR}/{product_brand}/{product_name}/{WRITE_DATE}.json"
         save_json(product_details, file_path)
     except Exception as e:
-        logging.error(f"Error scraping product {product['name']}: {str(e)}")
+        logger.error(f"Error scraping product {product['name']}: {str(e)}")
 
 
 def scrape_products():
@@ -123,9 +116,9 @@ def fetch_image(link, dir_parts):
     if len(image_file) >= IMAGE_MIN_BYTES:
         with open(file_path, "wb") as f:
             f.write(image_file)
-        logging.info(f"Image saved at {file_path}")
+        logger.info(f"Image saved at {file_path}")
     else:
-        logging.info(f"Skipped saving image: {link} (too small/broken image)")
+        logger.info(f"Skipped saving image: {link} (too small/broken image)")
 
 
 def scrape_images():
@@ -144,14 +137,21 @@ def scrape_images():
                 executor.map(partial(fetch_image, dir_parts=dir_parts), links)
 
         except Exception as e:
-            logging.error(f"Error processing images for {json_file}: {str(e)}")
+            logger.error(f"Error processing images for {json_file}: {str(e)}")
 
 
 if __name__ == "__main__":
     try:
+        start_time = time.time()
+        logger.info("Start Scraping Run")
+
         scrape_listing()
         unify_listings()
         scrape_products()
         scrape_images()
+
+        end_time = time.time()
+        logger.info("Finished Scraping Run")
+        logger.info(f"Elapsed time {timedelta(seconds=end_time - start_time)}")
     except Exception as e:
-        logging.error(f"Error during execution: {str(e)}")
+        logger.error(f"Error during execution: {str(e)}")
