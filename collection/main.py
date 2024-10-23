@@ -42,7 +42,7 @@ def save_json(data: dict, file_path: str):
 
 def scrape_listing(source_file: str = SOURCE_FILE):
     """Scrapes all listings from brands."""
-    brands = read_brands(source_file)[:2]
+    brands = read_brands(source_file)
 
     for brand in brands:
         try:
