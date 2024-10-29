@@ -62,16 +62,18 @@ def extract_details(json_file):
         # Get values if they exist
         parent_id = parsed_parent_id[0].value if parsed_parent_id else None
         description = parsed_desc[0].value if parsed_desc else None
-        children = parsed_children[0].value if parsed_children else None
 
-        flattened_children = [
-            {
-                "productID": child.value["productID"],
-                # "optionID": child.value["optionID"][0],
-                "optionName": ', '.join(child.value["optionName"]),
-            }
-            for child in parsed_children
-        ] if parsed_children else None
+        flattened_children = (
+            [
+                {
+                    "productID": child.value["productID"],
+                    "optionName": ", ".join(child.value["optionName"]),
+                }
+                for child in parsed_children
+            ]
+            if parsed_children
+            else None
+        )
 
         # Create dictionary to store extracted details
         out_json = {
