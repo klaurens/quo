@@ -95,7 +95,7 @@ def extract_details(json_file):
 
 def main():
     # Get list of JSON files
-    files = glob.glob("/details/**/**/details_*.json")
+    files = glob.glob("details/**/**/details_*.json")
 
     # Track execution time
     start = time.time()
