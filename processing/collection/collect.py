@@ -134,7 +134,7 @@ def fetch_image(link, dir_parts):
             logger.info(f"Skipped saving image: {link} (too small/broken image)")
 
 
-if __name__ == "__main__":
+def main():
     try:
         start_time = time.time()
         logger.info("Start Scraping Run")
@@ -148,3 +148,7 @@ if __name__ == "__main__":
         logger.info(f"Elapsed time {timedelta(seconds=end_time - start_time)}")
     except Exception as e:
         logger.error(f"Error during execution: {str(e)}")
+
+
+if __name__ == "__main__":
+    main()

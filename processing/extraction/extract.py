@@ -1,22 +1,10 @@
 import glob
 import os
 import json
-import logging
+from processing.logger import logger
 from jsonpath_ng.ext import parse
 from concurrent.futures import ThreadPoolExecutor
 import time
-from datetime import datetime
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        # logging.StreamHandler(),  # This sends log output to the console
-        # You can also add FileHandler() if you want to log to a file
-        logging.FileHandler(f"scraper-{datetime.today().date()}.log")
-    ],
-)
 
 # Define JSONPath parsers
 BASIC_PARSER = parse("$..basicInfo")
@@ -33,7 +21,7 @@ def extract_details(json_file):
         parent_dir = os.path.dirname(json_file)
         output_file = os.path.join(parent_dir, OUT_FILE_NAME)
 
-        logging.info(f"Processing file: {json_file}")
+        logger.info(f"Processing file: {json_file}")
 
         # Open and parse JSON file
         with open(json_file, "r") as f:
@@ -89,34 +77,35 @@ def extract_details(json_file):
         }
 
         # Log extracted information
-        logging.info(f"Extracted details for {parent_dir}")
+        logger.info(f"Extracted details for {parent_dir}")
 
         # Write data to details.json in the same directory as the JSON file
         with open(output_file, "w") as f:
             json.dump(out_json, f, indent=4)
 
-        logging.info(f"Successfully wrote to {output_file}")
+        logger.info(f"Successfully wrote to {output_file}")
 
     except Exception as e:
-        logging.error(f"Failed to process {json_file}: {e}")
+        logger.error(f"Failed to process {json_file}: {e}")
 
 
-def extract_all():
+def main():
     # Get list of JSON files
     files = glob.glob("../collection/details/**/**/*-*-*.json")
 
     # Track execution time
     start = time.time()
 
-    logging.info("Starting JSON extraction process")
+    logger.info("Starting JSON extraction process")
 
     # Execute in parallel
     with ThreadPoolExecutor(max_workers=10) as executor:
         executor.map(extract_details, files)
 
-    logging.info(
+    logger.info(
         f"Completed JSON extraction process. Execution time: {time.time() - start}"
     )
 
+
 if __name__ == "__main__":
-    extract_all()
+    main()
