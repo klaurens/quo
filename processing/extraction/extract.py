@@ -1,29 +1,22 @@
-import glob
 import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+
+import glob
 import json
-import logging
+from processing.logger import logger
 from jsonpath_ng.ext import parse
 from concurrent.futures import ThreadPoolExecutor
 import time
-from datetime import datetime
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        # logging.StreamHandler(),  # This sends log output to the console
-        # You can also add FileHandler() if you want to log to a file
-        logging.FileHandler(f"scraper-{datetime.today().date()}.log")
-    ],
-)
 
 # Define JSONPath parsers
 BASIC_PARSER = parse("$..basicInfo")
 PARENT_ID_PARSER = parse("$..parentID")
 DESC_PARSER = parse("$..content[?(@.title=='Deskripsi')].subtitle")
 CHILD_PARSER = parse("$..pdpGetLayout..children[*]")
-OUT_FILE_NAME = "details.json"
+PRICE_PARSER = parse("$..price.value")
+OUT_FILE_NAME = "product_info.json"
 CATEGORY_BREADCRUMB_URI = "https://www.tokopedia.com/p/"
 
 
@@ -33,7 +26,7 @@ def extract_details(json_file):
         parent_dir = os.path.dirname(json_file)
         output_file = os.path.join(parent_dir, OUT_FILE_NAME)
 
-        logging.info(f"Processing file: {json_file}")
+        logger.info(f"Processing file: {json_file}")
 
         # Open and parse JSON file
         with open(json_file, "r") as f:
@@ -58,10 +51,12 @@ def extract_details(json_file):
         parsed_parent_id = PARENT_ID_PARSER.find(j)
         parsed_desc = DESC_PARSER.find(j)
         parsed_children = CHILD_PARSER.find(j)
+        parsed_price = PRICE_PARSER.find(j)
 
         # Get values if they exist
         parent_id = parsed_parent_id[0].value if parsed_parent_id else None
         description = parsed_desc[0].value if parsed_desc else None
+        price = parsed_price[0].value if parsed_price else None
 
         flattened_children = (
             [
@@ -81,6 +76,7 @@ def extract_details(json_file):
             "shop_id": shop_id,
             "shop_name": shop_name,
             "url": url,
+            "price" : price,
             "parent_id": parent_id,
             "description": description,
             "category": category,
@@ -89,31 +85,35 @@ def extract_details(json_file):
         }
 
         # Log extracted information
-        logging.info(f"Extracted details for {parent_dir}")
+        logger.info(f"Extracted details for {parent_dir}")
 
         # Write data to details.json in the same directory as the JSON file
         with open(output_file, "w") as f:
             json.dump(out_json, f, indent=4)
 
-        logging.info(f"Successfully wrote to {output_file}")
+        logger.info(f"Successfully wrote to {output_file}")
 
     except Exception as e:
-        logging.error(f"Failed to process {json_file}: {e}")
+        logger.error(f"Failed to process {json_file}: {e}")
 
 
-# Get list of JSON files
-files = glob.glob("../collection/details/**/**/*-*-*.json")
-# files = glob.glob("../collection/details/**/AVGAL Adriel Top/*-*-*.json")
+def main():
+    # Get list of JSON files
+    files = glob.glob("details/**/**/details_*.json")
 
-# Track execution time
-start = time.time()
+    # Track execution time
+    start = time.time()
 
-logging.info("Starting JSON extraction process")
+    logger.info("Starting JSON extraction process")
 
-# Execute in parallel
-with ThreadPoolExecutor(max_workers=10) as executor:
-    executor.map(extract_details, files)
+    # Execute in parallel
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        executor.map(extract_details, files)
 
-logging.info(
-    f"Completed JSON extraction process. Execution time: {time.time() - start}"
-)
+    logger.info(
+        f"Completed JSON extraction process. Execution time: {time.time() - start}"
+    )
+
+
+if __name__ == "__main__":
+    main()

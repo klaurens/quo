@@ -5,12 +5,12 @@ from datetime import datetime
 
 def setup_logger():
     logging.basicConfig(
-        format="%(asctime)s [%(levelname)s] %(message)s",
+        format="%(asctime)s [%(levelname)s - %(filename)s] %(message)s",
         level=logging.INFO,  # Set the desired logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         handlers=[
             # logging.StreamHandler(),  # This sends log output to the console
-            # You can also add FileHandler() if you want to log to a file
-            logging.FileHandler(f"scraper-{datetime.today().date()}.log")
+            # You can also add FileHandler() if you want to log to xa file
+            logging.FileHandler(f"processing/logs/{datetime.today().date()}.log")
         ],
     )
 

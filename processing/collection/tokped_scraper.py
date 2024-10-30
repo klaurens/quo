@@ -1,6 +1,11 @@
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+
 import requests
 import re
-from logger import logger
+from processing.logger import logger
 from requests.exceptions import RequestException
 from queries import get_product_query, get_sid_query, get_product_details_query
 
