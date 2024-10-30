@@ -23,27 +23,11 @@ SOURCE_FILE = "brands.txt"
 DETAILS_DIR = "details"
 LISTING_DIR = "listing"
 UNIFIED_DIR = "unified"
-BUCKET_NAME = os.getenv("BUCKET_NAME")
-BUCKET_PREFIX = os.getenv("BUCKET_PREFIX")
-WRITE_CLOUD = os.getenv("WRITE_CLOUD") == "True"
 OVERWRITE = os.getenv("OVERWRITE") == "True"
-OVERWRITE_CLOUD = os.getenv("OVERWRITE") == "True"
 MAGIC_NUMBERS = {
     b"\xFF\xD8": "jpg",
     b"\x89\x50\x4E\x47": "png",
 }
-
-
-def upload_to_gcs(file_path, content):
-    """Uploads content to Google Cloud Storage."""
-    client = storage.Client()
-    bucket = client.bucket(BUCKET_NAME)
-    blob_name = f"{BUCKET_PREFIX}/{file_path}"
-    blob = bucket.blob(blob_name)
-
-    # Write content to the blob
-    blob.upload_from_string(content)
-    logger.info(f"Uploaded to GCS: {blob_name}")
 
 
 def create_dir_if_not_exists(directory: str):
@@ -59,14 +43,10 @@ def read_brands(source_file: str) -> List[str]:
 
 def save_json(data: dict, file_path: str):
     """Saves data to a JSON file."""
-    if WRITE_CLOUD:
-        json_data = json.dumps(data)
-        upload_to_gcs(BUCKET_NAME, file_path, json_data)
-    else:
-        create_dir_if_not_exists(os.path.dirname(file_path))
-        with open(file_path, "w") as write_file:
-            json.dump(data, write_file)
-        logger.info(f"Saved data to {file_path}")
+    create_dir_if_not_exists(os.path.dirname(file_path))
+    with open(file_path, "w") as write_file:
+        json.dump(data, write_file)
+    logger.info(f"Saved data to {file_path}")
 
 
 def scrape_listing(source_file: str = SOURCE_FILE):
@@ -79,11 +59,7 @@ def scrape_listing(source_file: str = SOURCE_FILE):
             brand_listing = get_brand_listing(brand_uri=brand)
 
             file_path = f"{LISTING_DIR}/{brand}/listing_{WRITE_DATE}.json"
-            if WRITE_CLOUD:
-                json_data = json.dumps(brand_listing)
-                upload_to_gcs(file_path, json_data)
-            else:
-                save_json(brand_listing, file_path)
+            save_json(brand_listing, file_path)
         except Exception as e:
             logger.error(f"Error scraping brand {brand}: {str(e)}")
 
@@ -109,11 +85,7 @@ def unify_listings():
         except Exception as e:
             logger.error(f"Error processing file {json_file}: {str(e)}")
 
-    if WRITE_CLOUD:
-        json_data = json.dumps(scraped_products)
-        upload_to_gcs(UNIFIED_FILE, json_data)
-    else:
-        save_json(scraped_products, UNIFIED_FILE)
+    save_json(scraped_products, UNIFIED_FILE)
 
 
 def scrape_product_details(product: dict):
@@ -157,12 +129,9 @@ def fetch_image(link, dir_parts):
     if not file_exists or OVERWRITE:
         image_file = get_image(link, brand_uri=product_brand)
         if len(image_file) >= IMAGE_MIN_BYTES:
-            if WRITE_CLOUD:
-                upload_to_gcs(file_path, image_file)
-            else:
-                with open(file_path, "wb") as f:
-                    f.write(image_file)
-                logger.info(f"Image saved at {file_path}")
+            with open(file_path, "wb") as f:
+                f.write(image_file)
+            logger.info(f"Image saved at {file_path}")
         else:
             logger.info(f"Skipped saving image: {link} (too small/broken image)")
 
@@ -205,37 +174,6 @@ def add_missing_extensions():
                 break
 
 
-def upload_to_gcp(file_path, bucket):
-    """Uploads a single file to GCP"""
-    try:
-        # Generate the relative path in GCP bucket
-        blob_name = os.path.join(BUCKET_PREFIX, os.path.relpath(file_path, DETAILS_DIR))
-
-        # Create a new blob (object) in the bucket
-        blob = bucket.blob(blob_name)
-
-        if not blob.exists() or OVERWRITE_CLOUD:
-            # Upload the file
-            blob.upload_from_filename(file_path)
-            logger.info(f"Uploaded {file_path} to gs://{BUCKET_NAME}/{blob_name}")
-
-    except Exception as e:
-        logger.error(f"Failed to upload {file_path}: {str(e)}")
-
-
-def push_to_gcp():
-    # Get all jpg and png files
-    file_path = glob.glob(f"{DETAILS_DIR}/**/**/*")
-
-    client = storage.Client()
-    bucket = client.get_bucket(BUCKET_NAME)
-
-    # Use ThreadPoolExecutor to upload files concurrently
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        # Submit each upload task to the executor
-        executor.map(partial(upload_to_gcp, bucket=bucket), file_path)
-
-
 if __name__ == "__main__":
     try:
         start_time = time.time()
@@ -246,7 +184,6 @@ if __name__ == "__main__":
         scrape_products()
         scrape_images()
         add_missing_extensions()
-        push_to_gcp()
 
         end_time = time.time()
         logger.info("Finished Scraping Run")
