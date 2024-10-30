@@ -128,7 +128,7 @@ def fetch_image(link, dir_parts):
     if image_name[-4:] not in (".png", ".jpg"):
         image_name += ".jpg"
 
-    file_dir = f"{DETAILS_DIR}/{product_brand}/{product_name}/images/"
+    file_dir = f"{DETAILS_DIR}/{product_brand}/{product_name}/images"
     file_path = f"{file_dir}/{image_name}"
     file_exists = os.path.isfile(file_path)
     if not file_exists or OVERWRITE:
