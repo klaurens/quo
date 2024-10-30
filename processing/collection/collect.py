@@ -4,7 +4,7 @@ import os
 import glob
 import json
 from jsonpath_ng import parse
-from logger import logger
+from processing.logger import logger
 import concurrent.futures
 from typing import List
 from functools import partial

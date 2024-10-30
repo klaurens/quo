@@ -1,6 +1,6 @@
 import requests
 import re
-from logger import logger
+from processing.logger import logger
 from requests.exceptions import RequestException
 from queries import get_product_query, get_sid_query, get_product_details_query
 

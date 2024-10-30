@@ -10,7 +10,7 @@ def setup_logger():
         handlers=[
             # logging.StreamHandler(),  # This sends log output to the console
             # You can also add FileHandler() if you want to log to a file
-            logging.FileHandler(f"scraper-{datetime.today().date()}.log")
+            logging.FileHandler(f"logs/{datetime.today().date()}.log")
         ],
     )
 

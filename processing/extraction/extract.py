@@ -101,19 +101,22 @@ def extract_details(json_file):
         logging.error(f"Failed to process {json_file}: {e}")
 
 
-# Get list of JSON files
-files = glob.glob("../collection/details/**/**/*-*-*.json")
-# files = glob.glob("../collection/details/**/AVGAL Adriel Top/*-*-*.json")
+def extract_all():
+    # Get list of JSON files
+    files = glob.glob("../collection/details/**/**/*-*-*.json")
 
-# Track execution time
-start = time.time()
+    # Track execution time
+    start = time.time()
 
-logging.info("Starting JSON extraction process")
+    logging.info("Starting JSON extraction process")
 
-# Execute in parallel
-with ThreadPoolExecutor(max_workers=10) as executor:
-    executor.map(extract_details, files)
+    # Execute in parallel
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        executor.map(extract_details, files)
 
-logging.info(
-    f"Completed JSON extraction process. Execution time: {time.time() - start}"
-)
+    logging.info(
+        f"Completed JSON extraction process. Execution time: {time.time() - start}"
+    )
+
+if __name__ == "__main__":
+    extract_all()
