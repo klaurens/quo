@@ -1,6 +1,10 @@
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+
 from tokped_scraper import get_brand_listing, get_item_details, get_image
 from datetime import datetime, timedelta
-import os
 import glob
 import json
 from jsonpath_ng import parse
@@ -9,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import List
 from functools import partial
 import time
-from utils.utils import save_json, sanitize_product_name
+from processing.utils.utils import save_json, sanitize_product_name, create_dir_if_not_exists
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -25,7 +29,7 @@ OVERWRITE = os.getenv("OVERWRITE") == "True"
 
 def read_brands(source_file: str) -> List[str]:
     """Reads brand names from a file."""
-    with open(source_file, "r") as read_file:
+    with open(os.path.join(os.path.dirname(__file__), source_file), "r") as read_file:
         return [brand.strip() for brand in read_file.readlines()]
 
 
@@ -84,19 +88,21 @@ def scrape_product_details(product: dict):
         sanitized_product_name = sanitize_product_name(product_name)
 
         file_path = (
-            f"{DETAILS_DIR}/{product_brand}/{sanitized_product_name}/{WRITE_DATE}.json"
+            f"{DETAILS_DIR}/{product_brand}/{sanitized_product_name}/details_{WRITE_DATE}.json"
         )
         file_exists = os.path.isfile(file_path)
         if not file_exists or OVERWRITE:
             product_details = get_item_details(product_url)
             save_json(product_details, file_path)
+        else:
+            logger.info(f"File exists. Skipping {file_path}")
     except Exception as e:
         logger.error(f"Error scraping product {product['name']}: {str(e)}")
 
 
 def scrape_images():
     """Scrapes images from product details."""
-    json_files = glob.glob(f"{DETAILS_DIR}/**/**/*.json")
+    json_files = glob.glob(f"{DETAILS_DIR}/**/**/details_*.json")
     parser = parse("$..urlMaxRes")
 
     for json_file in json_files:
@@ -122,12 +128,14 @@ def fetch_image(link, dir_parts):
     if image_name[-4:] not in (".png", ".jpg"):
         image_name += ".jpg"
 
-    file_path = f"{DETAILS_DIR}/{product_brand}/{product_name}/images/{image_name}"
+    file_dir = f"{DETAILS_DIR}/{product_brand}/{product_name}/images/"
+    file_path = f"{file_dir}/{image_name}"
     file_exists = os.path.isfile(file_path)
     if not file_exists or OVERWRITE:
         image_file = get_image(link, brand_uri=product_brand)
         if len(image_file) >= IMAGE_MIN_BYTES:
-            with open(file_path, "wb") as f:
+            create_dir_if_not_exists(file_dir)
+            with open(file_path, "wb+") as f:
                 f.write(image_file)
             logger.info(f"Image saved at {file_path}")
         else:

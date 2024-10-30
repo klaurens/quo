@@ -1,3 +1,8 @@
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+
 import requests
 import re
 from processing.logger import logger
