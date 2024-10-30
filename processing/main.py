@@ -17,11 +17,8 @@ def run_collect():
         logger.info("Start Scraping Run")
 
         collect.scrape_listing()
-        collect.unify_listings()
         collect.scrape_products()
         collect.scrape_images()
-        collect.add_missing_extensions()
-        collect.push_to_gcp()
 
         end_time = time.time()
         logger.info("Finished Scraping Run")
