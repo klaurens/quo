@@ -1,5 +1,7 @@
+import os
 from collection import collect
 from extraction import extract
+from sync import to_cloud, from_cloud
 from logger import logger
 import time
 from datetime import timedelta
@@ -7,6 +9,16 @@ from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
+if os.environ.get('GAE_ENV', '') == 'standard':
+# Running on GCP
+    ENVIRONMENT = 'gcp'
+else:
+    # Running locally
+    ENVIRONMENT = 'local'
+
+SYNC_LOCAL = os.getenv("SYNC_LOCAL") == 'True'
+SYNC_GCP = os.getenv("SYNC_GCP") == 'True'
+
 
 if __name__ == "__main__":
     start_time = time.time()
@@ -21,7 +33,14 @@ if __name__ == "__main__":
     # detection
     # Detect bounding boxes with fpedia model
 
+    # Sync
     # upload to gcp if necessary here
+    if ENVIRONMENT == 'local' and SYNC_GCP:
+        # Upload to GCP
+        pass
+    elif SYNC_LOCAL:
+        # Download from GCP
+        pass
 
     # index
     # 1. Combine extracted data from extraction with bounding boxes from detection into reference_images.csv file
