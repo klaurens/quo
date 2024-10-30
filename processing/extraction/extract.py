@@ -15,7 +15,7 @@ BASIC_PARSER = parse("$..basicInfo")
 PARENT_ID_PARSER = parse("$..parentID")
 DESC_PARSER = parse("$..content[?(@.title=='Deskripsi')].subtitle")
 CHILD_PARSER = parse("$..pdpGetLayout..children[*]")
-OUT_FILE_NAME = "details.json"
+OUT_FILE_NAME = "product_info.json"
 CATEGORY_BREADCRUMB_URI = "https://www.tokopedia.com/p/"
 
 
@@ -95,7 +95,7 @@ def extract_details(json_file):
 
 def main():
     # Get list of JSON files
-    files = glob.glob("../collection/details/**/**/*-*-*.json")
+    files = glob.glob("/details/**/**/details_*.json")
 
     # Track execution time
     start = time.time()
