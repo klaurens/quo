@@ -68,15 +68,21 @@ def write_gcs(file_path, content):
 def upload_to_gcs(local_file, bucket, upload_count, upload_lock):
     """Uploads a single file to GCP"""
     # Create a blob (file) in the GCS bucket
-    blob = bucket.blob(local_file)
-    if blob.exists():
-        logger.info(f"{local_file} already exists in GCS, skipping upload.")
-        return
+    try:
+        # Create a blob (file) in the GCS bucket
+        blob = bucket.blob(local_file)
+        if blob.exists():
+            logger.info(f'{local_file} already exists in GCS, skipping upload.')
+            return
 
-    # Upload the local file to GCS
-    blob.upload_from_filename(local_file)
-    logger.info(f"Uploaded {local_file} to gs://{bucket.name}/{local_file}")
+        # Upload the local file to GCS
+        blob.upload_from_filename(local_file)
+        logger.info(f'Uploaded {local_file} to gs://{bucket.name}/{local_file}')
 
-    # Safely increment the upload count
-    with upload_lock:
-        upload_count[0] += 1  # Use a list to allow mutable reference
+        # Safely increment the upload count
+        with upload_lock:
+            upload_count[0] += 1  # Use a list to allow mutable reference
+            logger.info(f'Total uploaded files: {upload_count[0]}')
+
+    except Exception as e:
+        logger.error(f'Failed to upload {local_file} to GCS: {e}')  # Log the error
