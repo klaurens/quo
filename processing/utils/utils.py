@@ -1,9 +1,14 @@
-import json
 import os
-import re
-from ..logger import logger
-from google.cloud import storage
+import sys
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+import json
+import re
+from processing.logger import logger
+from google.cloud import storage
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BUCKET_NAME = os.getenv("BUCKET_NAME")
 OVERWRITE_CLOUD = os.getenv("OVERWRITE_CLOUD") == "True"
@@ -60,19 +65,18 @@ def write_gcs(file_path, content):
     logger.info(f"Written to GCS: {file_path}")
 
 
-def upload_to_gcs(file_path, bucket):
+def upload_to_gcs(local_file, bucket, upload_count, upload_lock):
     """Uploads a single file to GCP"""
-    client = storage.Client()
-    bucket = client.bucket(BUCKET_NAME)
-    try:
+    # Create a blob (file) in the GCS bucket
+    blob = bucket.blob(local_file)
+    if blob.exists():
+        logger.info(f"{local_file} already exists in GCS, skipping upload.")
+        return
 
-        # Create a new blob (object) in the bucket
-        blob = bucket.blob(file_path)
+    # Upload the local file to GCS
+    blob.upload_from_filename(local_file)
+    logger.info(f"Uploaded {local_file} to gs://{bucket.name}/{local_file}")
 
-        if not blob.exists() or OVERWRITE_CLOUD:
-            # Upload the file
-            blob.upload_from_filename(file_path)
-            logger.info(f"Uploaded {file_path} to gs://{BUCKET_NAME}/{file_path}")
-
-    except Exception as e:
-        logger.error(f"Failed to upload {file_path}: {str(e)}")
+    # Safely increment the upload count
+    with upload_lock:
+        upload_count[0] += 1  # Use a list to allow mutable reference
