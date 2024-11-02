@@ -45,7 +45,7 @@ if __name__ == "__main__":
         to_cloud.main()
     elif SYNC_LOCAL:
         # Download from GCP
-        pass
+        from_cloud.main()
 
     # index
     # 1. Combine extracted data from extraction with bounding boxes from detection into reference_images.csv file

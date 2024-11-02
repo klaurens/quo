@@ -13,6 +13,10 @@ load_dotenv()
 BUCKET_NAME = os.getenv("BUCKET_NAME")
 OVERWRITE_CLOUD = os.getenv("OVERWRITE_CLOUD") == "True"
 
+SUCCESS_CODE = 0
+ERROR_CODE = 1
+EXIST_CODE = 2
+
 # MAGIC_NUMBERS = {
 #     b"\xFF\xD8": "jpg",
 #     b"\x89\x50\x4E\x47": "png",
@@ -73,16 +77,16 @@ def upload_to_gcs(local_file, bucket, overwrite=False):
         blob = bucket.blob(local_file)
         if blob.exists() and not overwrite:
             logger.info(f"{local_file} already exists in GCS, skipping upload.")
-            return 2
+            return EXIST_CODE
 
         # Upload the local file to GCS
         blob.upload_from_filename(local_file)
         logger.info(f"Uploaded {local_file} to gs://{bucket.name}/{local_file}")
-        return 0
+        return SUCCESS_CODE
 
     except Exception as e:
         logger.error(f"Failed to upload {local_file} to GCS: {e}")  # Log the error
-        return 1
+        return ERROR_CODE
 
 
 def download_from_gcs(blob_name, bucket, overwrite=False):
@@ -96,7 +100,7 @@ def download_from_gcs(blob_name, bucket, overwrite=False):
 
         if os.path.exists(local_file_path) and not overwrite:
             logger.info(f"{local_file_path} exists in local")
-            return 2
+            return EXIST_CODE
 
         # Create the directory if it doesn't exist
         create_dir_if_not_exists(local_file_path)
@@ -104,8 +108,8 @@ def download_from_gcs(blob_name, bucket, overwrite=False):
         # Download the blob to a local file
         blob.download_to_filename(local_file_path)
         logger.info(f"Downloaded gs://{BUCKET_NAME}/{blob_name} to {local_file_path}")
-        return 0
+        return SUCCESS_CODE
 
     except Exception as e:
         logger.error(f"Failed to download {blob_name} from GCS: {e}")  # Log the error
-        return 1
+        return ERROR_CODE

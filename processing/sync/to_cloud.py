@@ -25,7 +25,8 @@ def sync_up(local_file, bucket, upload_lock, upload_count):
     if status == 1:
         with upload_lock:
             upload_count[0] += 1  # Use a list to allow mutable reference
-            
+
+
 def main():
     # Initialize the GCS client
     client = storage.Client()
