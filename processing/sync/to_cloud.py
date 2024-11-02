@@ -15,8 +15,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BUCKET_NAME = os.getenv("BUCKET_NAME")
+OVERWRITE_CLOUD = os.getenv("OVERWRITE_CLOUD") == "True"
 
 
+def sync_up(local_file, bucket, upload_lock, upload_count):
+    # Create a blob (file) in the GCS bucket
+    status = upload_to_gcs(local_file, bucket, OVERWRITE_CLOUD)
+    # Safely increment the upload count
+    if status == 1:
+        with upload_lock:
+            upload_count[0] += 1  # Use a list to allow mutable reference
+            
 def main():
     # Initialize the GCS client
     client = storage.Client()

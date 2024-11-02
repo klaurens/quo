@@ -24,7 +24,7 @@ WRITE_DATE = datetime.today().date()
 SOURCE_FILE = "brands.txt"
 DETAILS_DIR = "details"
 LISTING_DIR = "listing"
-OVERWRITE = os.getenv("OVERWRITE") == "True"
+SCRAPE_OVERWRITE = os.getenv("SCRAPE_OVERWRITE") == "True"
 
 
 def read_brands(source_file: str) -> List[str]:
@@ -91,7 +91,7 @@ def scrape_product_details(product: dict):
             f"{DETAILS_DIR}/{product_brand}/{sanitized_product_name}/details_{WRITE_DATE}.json"
         )
         file_exists = os.path.isfile(file_path)
-        if not file_exists or OVERWRITE:
+        if not file_exists or SCRAPE_OVERWRITE:
             product_details = get_item_details(product_url)
             save_json(product_details, file_path)
         else:
@@ -131,7 +131,7 @@ def fetch_image(link, dir_parts):
     file_dir = f"{DETAILS_DIR}/{product_brand}/{product_name}/images"
     file_path = f"{file_dir}/{image_name}"
     file_exists = os.path.isfile(file_path)
-    if not file_exists or OVERWRITE:
+    if not file_exists or SCRAPE_OVERWRITE:
         image_file = get_image(link, brand_uri=product_brand)
         if len(image_file) >= IMAGE_MIN_BYTES:
             create_dir_if_not_exists(file_dir)

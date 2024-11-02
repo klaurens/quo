@@ -65,24 +65,47 @@ def write_gcs(file_path, content):
     logger.info(f"Written to GCS: {file_path}")
 
 
-def upload_to_gcs(local_file, bucket, upload_count, upload_lock):
+def upload_to_gcs(local_file, bucket, overwrite=False):
     """Uploads a single file to GCP"""
     # Create a blob (file) in the GCS bucket
     try:
         # Create a blob (file) in the GCS bucket
         blob = bucket.blob(local_file)
-        if blob.exists():
-            logger.info(f'{local_file} already exists in GCS, skipping upload.')
-            return
+        if blob.exists() and not overwrite:
+            logger.info(f"{local_file} already exists in GCS, skipping upload.")
+            return 2
 
         # Upload the local file to GCS
         blob.upload_from_filename(local_file)
-        logger.info(f'Uploaded {local_file} to gs://{bucket.name}/{local_file}')
-
-        # Safely increment the upload count
-        with upload_lock:
-            upload_count[0] += 1  # Use a list to allow mutable reference
-            logger.info(f'Total uploaded files: {upload_count[0]}')
+        logger.info(f"Uploaded {local_file} to gs://{bucket.name}/{local_file}")
+        return 0
 
     except Exception as e:
-        logger.error(f'Failed to upload {local_file} to GCS: {e}')  # Log the error
+        logger.error(f"Failed to upload {local_file} to GCS: {e}")  # Log the error
+        return 1
+
+
+def download_from_gcs(blob_name, bucket, overwrite=False):
+    """Downloads a single file from GCS to the specified local directory."""
+    try:
+        # Create a blob object
+        blob = bucket.blob(blob_name)
+
+        # Create the local path
+        local_file_path = blob_name
+
+        if os.path.exists(local_file_path) and not overwrite:
+            logger.info(f"{local_file_path} exists in local")
+            return 2
+
+        # Create the directory if it doesn't exist
+        create_dir_if_not_exists(local_file_path)
+
+        # Download the blob to a local file
+        blob.download_to_filename(local_file_path)
+        logger.info(f"Downloaded gs://{BUCKET_NAME}/{blob_name} to {local_file_path}")
+        return 0
+
+    except Exception as e:
+        logger.error(f"Failed to download {blob_name} from GCS: {e}")  # Log the error
+        return 1
