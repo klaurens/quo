@@ -5,7 +5,7 @@ from datetime import datetime
 
 def setup_logger():
     logging.basicConfig(
-        format="%(asctime)s [%(levelname)s - %(filename)s] %(message)s",
+        format="%(asctime)s [%(levelname)s - %(filename)s <line: %(lineno)d>] %(message)s",
         level=logging.INFO,  # Set the desired logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         handlers=[
             # logging.StreamHandler(),  # This sends log output to the console

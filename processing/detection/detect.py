@@ -114,25 +114,35 @@ def visualize_detections(
 def infer_single_image(image_file, label_map_dict):
     """Performs inference on a single image file and returns detection results."""
     input_tensor, (height, width, _) = process_image(image_file)
+    input_tensor = tf.expand_dims(input_tensor, axis=0)
     if input_tensor is None:
         return None  # Skip if image processing failed
 
     try:
         output_results = MODEL.signatures["serving_default"](input_tensor)
+        logger.warning(1)
         num_detections = int(output_results["num_detections"][0])
+        logger.warning(2)
         np_boxes = output_results["detection_boxes"][0, :num_detections]
+        logger.warning(3)
         np_scores = output_results["detection_scores"][0, :num_detections].numpy()
+        logger.warning(4)
         np_classes = (
             output_results["detection_classes"][0, :num_detections].numpy().astype(int)
         )
+        logger.warning(5)
         np_attributes = output_results.get("detection_attributes", None)
+        logger.warning(6)
 
         # Adjust bounding boxes
         np_image_info = output_results["image_info"][0]
+        logger.warning(7)
         np_boxes = adjust_boxes(np_boxes, np_image_info, width, height)
+        logger.warning(8)
 
         # Process masks if available
         np_masks, encoded_masks = process_masks(np_boxes, output_results, height, width)
+        logger.warning(9)
 
         # Visualization
         # image_with_detections = visualize_detections(
@@ -178,8 +188,8 @@ def save_visualized_image(image_array, image_file, output_subdir="processed"):
 
 def main():
     label_map_dict = read_labels()
-    image_pattern = "../details/**/**/*.[jp][pn]g"
-    image_files = glob.glob(image_pattern, recursive=True)
+    image_pattern = "details/**/**/images/*.[jp][pn]g"
+    image_files = glob.glob(image_pattern, recursive=True)[:2]
     results = []
 
     # Run inference with a ThreadPoolExecutor for parallel processing
@@ -190,7 +200,8 @@ def main():
         }
         for future in tqdm(futures, desc="Processing images"):
             result = future.result()
-            save_visualized_image(result, result["image_file"])
+            logger.info(result)
+            # save_visualized_image(result, result["image_file"])
 
             # if result and "visualized_image" in result:
             #     # Save the visualized image to the output path

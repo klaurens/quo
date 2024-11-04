@@ -3,14 +3,15 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "collection")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "extraction")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "detection")))
 
-import time
-from collection import collect
-from extraction import extract
+# import time
+# from collection import collect
+# from extraction import extract
 from detection import detect
-from sync import to_cloud, from_cloud
-from logger import logger
-from datetime import timedelta
+# from sync import to_cloud, from_cloud
+# from logger import logger
+# from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -38,7 +39,7 @@ if __name__ == "__main__":
 
     # detection
     # Detect bounding boxes with fpedia model
-    detect
+    detect.main()
 
     # Sync
     # upload to gcp if necessary here
