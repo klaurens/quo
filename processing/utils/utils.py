@@ -1,12 +1,21 @@
-import json
 import os
-import re
-from ..logger import logger
-from google.cloud import storage
+import sys
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+import json
+import re
+from processing.logger import logger
+from google.cloud import storage
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BUCKET_NAME = os.getenv("BUCKET_NAME")
 OVERWRITE_CLOUD = os.getenv("OVERWRITE_CLOUD") == "True"
+
+SUCCESS_CODE = 0
+ERROR_CODE = 1
+EXIST_CODE = 2
 
 # MAGIC_NUMBERS = {
 #     b"\xFF\xD8": "jpg",
@@ -60,19 +69,47 @@ def write_gcs(file_path, content):
     logger.info(f"Written to GCS: {file_path}")
 
 
-def upload_to_gcs(file_path, bucket):
+def upload_to_gcs(local_file, bucket, overwrite=False):
     """Uploads a single file to GCP"""
-    client = storage.Client()
-    bucket = client.bucket(BUCKET_NAME)
+    # Create a blob (file) in the GCS bucket
     try:
+        # Create a blob (file) in the GCS bucket
+        blob = bucket.blob(local_file)
+        if blob.exists() and not overwrite:
+            logger.info(f"{local_file} already exists in GCS, skipping upload.")
+            return EXIST_CODE
 
-        # Create a new blob (object) in the bucket
-        blob = bucket.blob(file_path)
-
-        if not blob.exists() or OVERWRITE_CLOUD:
-            # Upload the file
-            blob.upload_from_filename(file_path)
-            logger.info(f"Uploaded {file_path} to gs://{BUCKET_NAME}/{file_path}")
+        # Upload the local file to GCS
+        blob.upload_from_filename(local_file)
+        logger.info(f"Uploaded {local_file} to gs://{bucket.name}/{local_file}")
+        return SUCCESS_CODE
 
     except Exception as e:
-        logger.error(f"Failed to upload {file_path}: {str(e)}")
+        logger.error(f"Failed to upload {local_file} to GCS: {e}")  # Log the error
+        return ERROR_CODE
+
+
+def download_from_gcs(blob_name, bucket, overwrite=False):
+    """Downloads a single file from GCS to the specified local directory."""
+    try:
+        # Create a blob object
+        blob = bucket.blob(blob_name)
+
+        # Create the local path
+        local_file_path = blob_name
+
+        if os.path.exists(local_file_path) and not overwrite:
+            logger.info(f"{local_file_path} exists in local")
+            return EXIST_CODE
+
+        # Create the directory if it doesn't exist
+        create_dir_if_not_exists(local_file_path)
+
+        # Download the blob to a local file
+        blob.download_to_filename(local_file_path)
+        logger.info(f"Downloaded gs://{BUCKET_NAME}/{blob_name} to {local_file_path}")
+        return SUCCESS_CODE
+
+    except Exception as e:
+        logger.error(f"Failed to download {blob_name} from GCS: {e}")  # Log the error
+        return ERROR_CODE
