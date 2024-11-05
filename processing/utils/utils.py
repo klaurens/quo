@@ -103,7 +103,8 @@ def download_from_gcs(blob_name, bucket, overwrite=False):
             return EXIST_CODE
 
         # Create the directory if it doesn't exist
-        create_dir_if_not_exists(local_file_path)
+        local_file_dir = os.path.dirname(local_file_path)
+        create_dir_if_not_exists(local_file_dir)
 
         # Download the blob to a local file
         blob.download_to_filename(local_file_path)

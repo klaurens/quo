@@ -18,7 +18,7 @@ OVERWRITE_LOCAL = os.getenv("OVERWRITE_LOCAL") == "True"
 
 
 def sync_down(blob_name, bucket, download_count, download_lock, overwrite=False):
-    status = download_from_gcs(blob_name, bucket, OVERWRITE_LOCAL)
+    status = download_from_gcs(blob_name, bucket, overwrite)
 
     if status == 0:
         with download_lock:
@@ -30,33 +30,40 @@ def main():
     client = storage.Client()
     bucket = client.bucket(BUCKET_NAME)
 
-    # Get all image files in the specified directories
-    blobs_details = client.list_blobs(BUCKET_NAME, prefix="details/")
-    blobs_listing = client.list_blobs(BUCKET_NAME, prefix="listing/")
-
+    # Initialize shared variables for threading
     download_lock = threading.Lock()
     download_count = [0]  # Use a list to allow mutable reference
 
-    # Combine the files from both directories
-    all_blobs = [blob.name for blob in blobs_details] + [
-        blob.name for blob in blobs_listing
-    ]
-    blobs_count = len(all_blobs)
-
-    # Sync files to GCS
+    listings = client.list_blobs(BUCKET_NAME, prefix="listing/")
     with ThreadPoolExecutor(max_workers=10) as executor:
-        executor.map(
-            partial(
+    # Directly iterate over blobs in the bucket
+        for blob in listings:
+            # Submit the download task for each blob directly
+            executor.submit(
                 sync_down,
+                blob_name=blob.name,  # Use the blob's name directly
                 bucket=bucket,
                 download_count=download_count,
                 download_lock=download_lock,
-            ),
-            all_blobs,
-        )
+                overwrite=OVERWRITE_LOCAL
+            )
+
+    details = client.list_blobs(BUCKET_NAME, prefix="details/")
+    with ThreadPoolExecutor(max_workers=10) as executor:
+    # Directly iterate over blobs in the bucket
+        for blob in details:
+            # Submit the download task for each blob directly
+            executor.submit(
+                sync_down,
+                blob_name=blob.name,  # Use the blob's name directly
+                bucket=bucket,
+                download_count=download_count,
+                download_lock=download_lock,
+                overwrite=OVERWRITE_LOCAL
+            )
+
 
     logger.info(f"Total downloaded files: {download_count[0]}")
-
 
 if __name__ == "__main__":
     start = time.time()

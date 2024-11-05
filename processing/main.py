@@ -50,6 +50,8 @@ if __name__ == "__main__":
     #     # Download from GCP
     #     from_cloud.main()
 
+    from_cloud.main()
+
     # index
     # 1. Combine extracted data from extraction with bounding boxes from detection into reference_images.csv file
     # 2. Create google vision index
