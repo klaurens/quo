@@ -5,13 +5,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "collect
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "extraction")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "detection")))
 
-# import time
 # from collection import collect
 # from extraction import extract
-from detection import detect
-# from sync import to_cloud, from_cloud
-# from logger import logger
-# from datetime import timedelta
+# from detection import detect
+from sync import to_cloud, from_cloud
+from logger import logger
+import time
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -28,8 +28,8 @@ SYNC_GCP = os.getenv("SYNC_GCP") == "True"
 
 
 if __name__ == "__main__":
-    # start_time = time.time()
-    # logger.info("Starting main processing")
+    start_time = time.time()
+    logger.info("Starting main processing")
 
     # collect
     # collect.main()
@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     # detection
     # Detect bounding boxes with fpedia model
-    detect.main()
+    # detect.main()
 
     # Sync
     # upload to gcp if necessary here
@@ -56,6 +56,6 @@ if __name__ == "__main__":
     # 1. Combine extracted data from extraction with bounding boxes from detection into reference_images.csv file
     # 2. Create google vision index
 
-    # end_time = time.time()
-    # logger.info("Finished main processing Run")
-    # logger.info(f"Elapsed time {timedelta(seconds=end_time - start_time)}")
+    end_time = time.time()
+    logger.info("Finished main processing Run")
+    logger.info(f"Elapsed time {timedelta(seconds=end_time - start_time)}")
