@@ -8,6 +8,7 @@ from processing.utils.utils import download_from_gcs
 from functools import partial
 from concurrent.futures import ThreadPoolExecutor
 import threading
+from datetime import timedelta
 import time
 from dotenv import load_dotenv
 
@@ -66,12 +67,12 @@ def main():
     logger.info(f"Total downloaded files: {download_count[0]}")
 
 if __name__ == "__main__":
-    start = time.time()
+    start_time = time.time()
 
     logger.info("Starting GCS download sync process")
 
     main()
 
     logger.info(
-        f"Completed GCS download sync process. Execution time: {time.time() - start}"
+        f"Completed GCS download sync process. Execution time: {timedelta(seconds=time.time() - start_time)}"
     )

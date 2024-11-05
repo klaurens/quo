@@ -10,6 +10,7 @@ from functools import partial
 from concurrent.futures import ThreadPoolExecutor
 import threading
 import time
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -58,12 +59,12 @@ def main():
 
 
 if __name__ == "__main__":
-    start = time.time()
+    start_time = time.time()
 
     logger.info("Starting GCS upload sync process")
 
     main()
 
     logger.info(
-        f"Completed GCS upload sync process. Execution time: {time.time() - start}"
+        f"Completed GCS upload sync process. Execution time: {timedelta(seconds=time.time() - start_time)}"
     )

@@ -8,6 +8,7 @@ import json
 from processing.logger import logger
 from jsonpath_ng.ext import parse
 from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 import time
 
 # Define JSONPath parsers
@@ -102,7 +103,7 @@ def main():
     files = glob.glob("details/**/**/details_*.json")
 
     # Track execution time
-    start = time.time()
+    start_time = time.time()
 
     logger.info("Starting JSON extraction process")
 
@@ -111,7 +112,7 @@ def main():
         executor.map(extract_details, files)
 
     logger.info(
-        f"Completed JSON extraction process. Execution time: {time.time() - start}"
+        f"Completed JSON extraction process. Execution time: {timedelta(seconds=time.time() - start_time)}"
     )
 
 
