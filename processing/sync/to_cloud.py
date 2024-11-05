@@ -10,6 +10,7 @@ from functools import partial
 from concurrent.futures import ThreadPoolExecutor
 import threading
 import time
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -34,18 +35,19 @@ def main():
 
     # Get all image files in the specified directories
     listing_files = glob.glob("listing/**/*.json", recursive=True)
-    details_files = glob.glob("details/**/**/images/*.[jp][pn]g", recursive=True)
+    image_files = glob.glob("details/**/**/images/*.[jp][pn]g", recursive=True)
+    details_files = glob.glob("details/**/**/*.json", recursive=True)
 
     upload_lock = threading.Lock()
     upload_count = [0]  # Use a list to allow mutable reference
 
     # Combine the files from both directories
-    files = listing_files + details_files
+    files = listing_files + image_files + details_files
     # Sync files to GCS
     with ThreadPoolExecutor(max_workers=10) as executor:
         executor.map(
             partial(
-                upload_to_gcs,
+                sync_up,
                 bucket=bucket,
                 upload_count=upload_count,
                 upload_lock=upload_lock,
@@ -57,12 +59,12 @@ def main():
 
 
 if __name__ == "__main__":
-    start = time.time()
+    start_time = time.time()
 
     logger.info("Starting GCS upload sync process")
 
     main()
 
     logger.info(
-        f"Completed GCS upload sync process. Execution time: {time.time() - start}"
+        f"Completed GCS upload sync process. Execution time: {timedelta(seconds=time.time() - start_time)}"
     )
