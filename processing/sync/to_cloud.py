@@ -34,15 +34,16 @@ def main():
     bucket = client.bucket(BUCKET_NAME)
 
     # Get all image files in the specified directories
-    listing_files = glob.glob("listing/**/*.json", recursive=True)
-    image_files = glob.glob("details/**/**/images/*.[jp][pn]g", recursive=True)
-    details_files = glob.glob("details/**/**/*.json", recursive=True)
+    listing_files = glob.glob("listing/**/*", recursive=True)
+    details_files = glob.glob("details/**/*", recursive=True)
 
     upload_lock = threading.Lock()
     upload_count = [0]  # Use a list to allow mutable reference
 
     # Combine the files from both directories
-    files = listing_files + image_files + details_files
+    files = listing_files + details_files
+    files = [file for file in files if os.path.isfile(file)]
+
     # Sync files to GCS
     with ThreadPoolExecutor(max_workers=10) as executor:
         executor.map(

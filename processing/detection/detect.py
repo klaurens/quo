@@ -6,6 +6,7 @@ import glob
 import numpy as np
 import tensorflow as tf
 from PIL import Image
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 from dotenv import load_dotenv
@@ -13,6 +14,8 @@ from utils import mask_utils, box_utils
 from utils.object_detection import visualization_utils
 from pycocotools import mask as mask_api
 from processing.logger import logger
+from datetime import timedelta
+import time
 
 # Load environment variables
 load_dotenv()
@@ -24,6 +27,8 @@ MODEL_DIR = os.getenv("MODEL_DIR")
 
 DETECT_MAX_BOXES = os.getenv("DETECT_MAX_BOXES")
 DETECT_MIN_THRESH = os.getenv("DETECT_MIN_THRESH")
+OVERWITE_DETECTION = os.getenv("OVERWITE_DETECTION") == "True"
+OUTPUT_SUBDIR=os.getenv("OUTPUT_SUBDIR")
 
 # Load the model
 MODEL = tf.saved_model.load(MODEL_DIR)
@@ -51,11 +56,11 @@ def process_image(image_file):
     """Processes an image file and returns it as a tensor."""
     try:
         image = Image.open(image_file).convert("RGB")
-        image_array = np.array(image)[:, :, :3]  # Remove alpha channel
-        # input_tensor = tf.convert_to_tensor(image_array[np.newaxis, :, :, :], dtype=tf.uint8)
-        input_tensor = tf.convert_to_tensor(image_array, dtype=tf.uint8)
+        result = np.array(image)[:, :, :3]  # Remove alpha channel
+        # input_tensor = tf.convert_to_tensor(result[np.newaxis, :, :, :], dtype=tf.uint8)
+        input_tensor = tf.convert_to_tensor(result, dtype=tf.uint8)
         logger.info(f"Processed image {image_file}")
-        return input_tensor, image_array.shape
+        return input_tensor, result.shape
     except Exception as e:
         logger.error(f"Error processing image {image_file}: {e}")
         return None, None
@@ -65,10 +70,10 @@ def adjust_boxes(np_boxes, image_info, width, height):
     """Adjusts bounding boxes to the dimensions of the image."""
     np_boxes = np_boxes / np.tile(image_info[1:2, :], (1, 2))
     ymin, xmin, ymax, xmax = np.split(np_boxes, 4, axis=-1)
-    ymin *= height
-    ymax *= height
-    xmin *= width
-    xmax *= width
+    ymin = ymin * height
+    ymax = ymax * height
+    xmin = xmin * width
+    xmax = xmax * width
     adjusted_boxes = np.concatenate([ymin, xmin, ymax, xmax], axis=-1)
     logger.debug(f"Adjusted bounding boxes for image of size ({width}, {height})")
     return adjusted_boxes
@@ -91,12 +96,12 @@ def process_masks(np_boxes, output_results, height, width):
 
 
 def visualize_detections(
-    image_array, np_boxes, np_classes, np_scores, label_map_dict, np_masks
+    result, np_boxes, np_classes, np_scores, label_map_dict, np_masks
 ):
     """Visualizes bounding boxes and labels on the image array."""
     image_with_detections = (
-        visualization_utils.visualize_boxes_and_labels_on_image_array(
-            image_array,
+        visualization_utils.visualize_boxes_and_labels_on_result(
+            result,
             np_boxes,
             np_classes,
             np_scores,
@@ -113,36 +118,33 @@ def visualize_detections(
 
 def infer_single_image(image_file, label_map_dict):
     """Performs inference on a single image file and returns detection results."""
+    output_dir = os.path.join(os.path.dirname(image_file), OUTPUT_SUBDIR)
+    output_path = os.path.join(output_dir, os.path.basename(image_file) + '.npy')
+    if os.path.exists(output_path) and not OVERWITE_DETECTION:
+       logger.info(f"{output_path} exists, skipping detection")
+    
     input_tensor, (height, width, _) = process_image(image_file)
     input_tensor = tf.expand_dims(input_tensor, axis=0)
     if input_tensor is None:
+        logger.info(f"Processing image {output_path} failed, skipping detection")
         return None  # Skip if image processing failed
 
     try:
         output_results = MODEL.signatures["serving_default"](input_tensor)
-        logger.warning(1)
         num_detections = int(output_results["num_detections"][0])
-        logger.warning(2)
         np_boxes = output_results["detection_boxes"][0, :num_detections]
-        logger.warning(3)
         np_scores = output_results["detection_scores"][0, :num_detections].numpy()
-        logger.warning(4)
         np_classes = (
             output_results["detection_classes"][0, :num_detections].numpy().astype(int)
         )
-        logger.warning(5)
         np_attributes = output_results.get("detection_attributes", None)
-        logger.warning(6)
 
         # Adjust bounding boxes
         np_image_info = output_results["image_info"][0]
-        logger.warning(7)
         np_boxes = adjust_boxes(np_boxes, np_image_info, width, height)
-        logger.warning(8)
 
         # Process masks if available
         np_masks, encoded_masks = process_masks(np_boxes, output_results, height, width)
-        logger.warning(9)
 
         # Visualization
         # image_with_detections = visualize_detections(
@@ -154,8 +156,7 @@ def infer_single_image(image_file, label_map_dict):
         #     np_masks,
         # )
 
-        logger.info(f"Inference completed for {image_file}")
-        return {
+        out = {
             "image_file": image_file,
             "boxes": np_boxes,
             "classes": np_classes,
@@ -165,32 +166,39 @@ def infer_single_image(image_file, label_map_dict):
             # "visualized_image": image_with_detections,
         }
 
+        logger.info(f"Inference completed for {image_file}")
+        return out
+
     except Exception as e:
         logger.error(f"Error during inference on {image_file}: {e}")
         return None
 
 
-def save_visualized_image(image_array, image_file, output_subdir="processed"):
+def save_detection(result):
     """Saves the visualized image back to the original folder or a subdirectory."""
     # Define the output path, using the original directory with a subdirectory for processed files
-    output_dir = os.path.join(os.path.dirname(image_file), output_subdir)
+    image_file = result['image_file']
+    output_dir = os.path.join(os.path.dirname(image_file), OUTPUT_SUBDIR)
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, os.path.basename(image_file))
 
+    np.save(output_path, result)
+    logger.info(f"Saved detection output to {output_path}")
+
     # # Convert array to image and save
-    # visualized_image = Image.fromarray(image_array)
+    # visualized_image = Image.fromarray(result)
     # visualized_image.save(output_path)
     # logger.info(f"Saved visualized image to {output_path}")
 
-    np.save(image_array, output_path)
-    logger.info(f"Saved detection output to {output_path}")
+    
 
 
 def main():
     label_map_dict = read_labels()
     image_pattern = "details/**/**/images/*.[jp][pn]g"
-    image_files = glob.glob(image_pattern, recursive=True)[:2]
-    results = []
+    image_files = set(glob.glob(image_pattern, recursive=True))
+    results_lock = threading.Lock()
+    results = [0]
 
     # Run inference with a ThreadPoolExecutor for parallel processing
     with ThreadPoolExecutor(max_workers=10) as executor:
@@ -200,20 +208,24 @@ def main():
         }
         for future in tqdm(futures, desc="Processing images"):
             result = future.result()
-            logger.info(result)
-            # save_visualized_image(result, result["image_file"])
 
-            # if result and "visualized_image" in result:
-            #     # Save the visualized image to the output path
-            #     # save_visualized_image(result["visualized_image"], result["image_file"])
-            # elif result:
-            #     logger.warning(
-            #         f"No visualized image found in the result for {result['image_file']}"
-            #     )
+            if result:
+                save_detection(result)
+                with results_lock:
+                    results[0] += 1
 
-    logger.info(f"Processed {len(results)} images")
-    # Optionally: save or process `results` as needed
+                
+
+    logger.info(f"Processed {results[0]} images")
 
 
 if __name__ == "__main__":
+    start_time = time.time()
+
+    logger.info("Starting detection process")
+
     main()
+
+    logger.info(
+        f"Completed detection process. Execution time: {timedelta(seconds=time.time() - start_time)}"
+    )
