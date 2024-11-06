@@ -14,10 +14,10 @@ load_dotenv()
 BUCKET_NAME = os.getenv("BUCKET_NAME")
 OVERWRITE_CLOUD = os.getenv("OVERWRITE_CLOUD") == "True"
 
-SUCCESS_CODE = 0
-ERROR_CODE = 1
-EXIST_CODE = 2
-IS_DIR_CODE = 3
+SUCCESS_CODE = os.getenv("SUCCESS_CODE")
+ERROR_CODE = os.getenv("ERROR_CODE")
+EXIST_CODE = os.getenv("EXIST_CODE")
+IS_DIR_CODE = os.getenv("IS_DIR_CODE")
 
 
 # MAGIC_NUMBERS = {
@@ -35,7 +35,7 @@ def save_json(data: dict, file_path: str):
     """Saves data to a JSON file."""
     create_dir_if_not_exists(os.path.dirname(file_path))
     with open(file_path, "w") as write_file:
-        json.dump(data, write_file)
+        json.dump(data, write_file, indent=2)
     logger.info(f"Saved data to {file_path}")
 
 

@@ -5,12 +5,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "collect
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "extraction")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "detection")))
 
-# from collection import collect
-# from extraction import extract
-# from detection import detect
+import time
+from collection import collect
+from extraction import extract
+from detection import detect
 from sync import to_cloud, from_cloud
 from logger import logger
-import time
 from datetime import timedelta
 from dotenv import load_dotenv
 
@@ -34,18 +34,18 @@ if __name__ == "__main__":
     # collect
     # collect.main()
 
-    # extraction
-    # extract.main()
-
     # detection
     # Detect bounding boxes with fpedia model
     # detect.main()
 
+    # extraction
+    # extract.main()
+
     # Sync
     # upload to gcp if necessary here
-    # if ENVIRONMENT == "local" and SYNC_GCP:
-    #     # Upload to GCP
-    #     to_cloud.main()
+    if ENVIRONMENT == "local" and SYNC_GCP:
+        # Upload to GCP
+        to_cloud.main()
     # elif SYNC_LOCAL:
     #     # Download from GCP
     #     from_cloud.main()
