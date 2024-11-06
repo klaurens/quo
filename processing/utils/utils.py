@@ -4,6 +4,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 import json
 import re
+from pathlib import Path
 from processing.logger import logger
 from google.cloud import storage
 from dotenv import load_dotenv
@@ -16,6 +17,8 @@ OVERWRITE_CLOUD = os.getenv("OVERWRITE_CLOUD") == "True"
 SUCCESS_CODE = 0
 ERROR_CODE = 1
 EXIST_CODE = 2
+IS_DIR_CODE = 3
+
 
 # MAGIC_NUMBERS = {
 #     b"\xFF\xD8": "jpg",
@@ -37,7 +40,7 @@ def save_json(data: dict, file_path: str):
 
 
 def sanitize_product_name(product_name):
-    sanitized_name = re.sub(r"[\n\t\/]+", " ", product_name).strip()
+    sanitized_name = re.sub(r"[\n\t\/\|]+", " ", product_name).strip()
     return sanitized_name
 
 
@@ -74,18 +77,23 @@ def upload_to_gcs(local_file, bucket, overwrite=False):
     # Create a blob (file) in the GCS bucket
     try:
         # Create a blob (file) in the GCS bucket
-        blob = bucket.blob(local_file)
+        gcs_destination = str(Path(local_file).as_posix())
+        if os.path.isdir(gcs_destination):
+            logger.info(f"{gcs_destination} is a directory, skipping upload.")
+            return IS_DIR_CODE
+        
+        blob = bucket.blob(gcs_destination)
         if blob.exists() and not overwrite:
-            logger.info(f"{local_file} already exists in GCS, skipping upload.")
+            logger.info(f"{gcs_destination} already exists in GCS, skipping upload.")
             return EXIST_CODE
 
         # Upload the local file to GCS
-        blob.upload_from_filename(local_file)
-        logger.info(f"Uploaded {local_file} to gs://{bucket.name}/{local_file}")
+        blob.upload_from_filename(gcs_destination)
+        logger.info(f"Uploaded {local_file} to gs://{bucket.name}/{gcs_destination}")
         return SUCCESS_CODE
 
     except Exception as e:
-        logger.error(f"Failed to upload {local_file} to GCS: {e}")  # Log the error
+        logger.error(f"Failed to upload {gcs_destination} to GCS: {e}")  # Log the error
         return ERROR_CODE
 
 

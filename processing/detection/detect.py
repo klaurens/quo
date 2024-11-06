@@ -196,7 +196,7 @@ def save_detection(result):
 def main():
     label_map_dict = read_labels()
     image_pattern = "details/**/**/images/*.[jp][pn]g"
-    image_files = glob.glob(image_pattern, recursive=True)
+    image_files = set(glob.glob(image_pattern, recursive=True))
     results_lock = threading.Lock()
     results = [0]
 
