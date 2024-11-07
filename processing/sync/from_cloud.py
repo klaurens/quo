@@ -25,6 +25,20 @@ def sync_down(blob_name, bucket, download_count, download_lock, overwrite=False)
         with download_lock:
             download_count[0] += 1  # Use a list to allow mutable reference
 
+def thread(files, bucket, download_count, download_lock):
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        # Directly iterate over blobs in the bucket
+            for blob in files:
+                # Submit the download task for each blob directly
+                executor.submit(
+                    sync_down,
+                    blob_name=blob.name,  # Use the blob's name directly
+                    bucket=bucket,
+                    download_count=download_count,
+                    download_lock=download_lock,
+                    overwrite=OVERWRITE_LOCAL
+                )
+
 
 def main():
     # Initialize the GCS client
@@ -36,33 +50,13 @@ def main():
     download_count = [0]  # Use a list to allow mutable reference
 
     listings = client.list_blobs(BUCKET_NAME, prefix="listing/")
-    with ThreadPoolExecutor(max_workers=10) as executor:
-    # Directly iterate over blobs in the bucket
-        for blob in listings:
-            # Submit the download task for each blob directly
-            executor.submit(
-                sync_down,
-                blob_name=blob.name,  # Use the blob's name directly
-                bucket=bucket,
-                download_count=download_count,
-                download_lock=download_lock,
-                overwrite=OVERWRITE_LOCAL
-            )
+    thread(listings, bucket, download_count, download_lock)
 
     details = client.list_blobs(BUCKET_NAME, prefix="details/")
-    with ThreadPoolExecutor(max_workers=10) as executor:
-    # Directly iterate over blobs in the bucket
-        for blob in details:
-            # Submit the download task for each blob directly
-            executor.submit(
-                sync_down,
-                blob_name=blob.name,  # Use the blob's name directly
-                bucket=bucket,
-                download_count=download_count,
-                download_lock=download_lock,
-                overwrite=OVERWRITE_LOCAL
-            )
+    thread(details, bucket, download_count, download_lock)
 
+    indices = client.list_blobs(BUCKET_NAME, prefix="indices/")
+    thread(indices, bucket, download_count, download_lock)
 
     logger.info(f"Total downloaded files: {download_count[0]}")
 

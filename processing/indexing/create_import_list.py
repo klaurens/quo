@@ -118,7 +118,7 @@ def main():
                 logger.error(f"Error processing a product: {e}")
 
     try:
-        with open(f"index_import_{date.today()}.csv", "w") as f:
+        with open(f"indices/index_import_{date.today()}.csv", "w") as f:
             f.writelines(all_import_lines)
         logger.info("CSV import file created successfully.")
     except IOError as e:

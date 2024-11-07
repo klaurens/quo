@@ -37,12 +37,13 @@ def main():
     # Get all image files in the specified directories
     listing_files = glob.glob("listing/**/*", recursive=True)
     details_files = glob.glob("details/**/*", recursive=True)
+    indices_files = glob.glob("indices/*")
 
     upload_lock = threading.Lock()
     upload_count = [0]  # Use a list to allow mutable reference
 
     # Combine the files from both directories
-    files = listing_files + details_files
+    files = listing_files + details_files + indices_files
     files = [file for file in files if os.path.isfile(file)]
 
     # Sync files to GCS

@@ -12,7 +12,7 @@ import time
 # from extraction import extract
 # from detection import detect
 # from sync import to_cloud, from_cloud
-from indexing import taxonomize
+from processing.indexing import create_import_list
 from logger import logger
 from datetime import timedelta
 from dotenv import load_dotenv
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     # index
     # 1. Combine extracted data from extraction with bounding boxes from detection into reference_images.csv file
     # 2. Create google vision index
-    taxonomize.main()
+    create_import_list.main()
 
     end_time = time.time()
     logger.info("Finished main processing Run")
