@@ -4,6 +4,7 @@ from google.cloud import vision
 import requests
 from io import BytesIO
 import glob
+import os
 
 
 def get_similar_products_file(
@@ -68,7 +69,7 @@ def get_similar_products_file(
 def get_related_images(input_image):
     project_id = "argon-producer-437209-a7"
     location = "us-east1"
-    product_set_id = "master_set"
+    product_set_id = "set_A"
     product_category = "apparel-v2"
     file_path = input_image
     filter = ""
@@ -114,9 +115,11 @@ if input_image:
     # Get related images (mock function)
     related_images = get_related_images(input_image)
     product_images = {}
+    print(os.getcwd())
     for related_img in related_images:
         product_name = related_img.product.display_name
-        all_image = glob.glob(f"products/**/{product_name}/*.[jpg][png]*")
+        all_image = glob.glob(f"details/**/{product_name}/images/*.[jp][pn]g")
+        print(all_image)
         if all_image:
             img_loc = all_image[0]
             product_images[product_name] = {
@@ -128,6 +131,7 @@ if input_image:
     # Display related images side-by-side
     st.write("Similar Images:")
     cols = st.columns(5)  # Create 5 columns for the images to be displayed side by side
+    print(product_images)
 
     # Loop over related images and display them
     for i, product in enumerate(product_images.items()):
