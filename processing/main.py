@@ -2,15 +2,18 @@ import os
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "collection")))
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "extraction")))
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "detection")))
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "extraction")))
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "detection")))
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "sync")))
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "indexing")))
 
-# from collection import collect
-# from extraction import extract
+import time
+from collection import collect
+from extraction import extract
 # from detection import detect
 from sync import to_cloud, from_cloud
+from indexing import create_import_list
 from logger import logger
-import time
 from datetime import timedelta
 from dotenv import load_dotenv
 
@@ -34,27 +37,27 @@ if __name__ == "__main__":
     # collect
     # collect.main()
 
-    # extraction
-    # extract.main()
-
     # detection
     # Detect bounding boxes with fpedia model
     # detect.main()
+
+    # extraction
+    # extract.main()
 
     # Sync
     # upload to gcp if necessary here
     # if ENVIRONMENT == "local" and SYNC_GCP:
     #     # Upload to GCP
     #     to_cloud.main()
-    # elif SYNC_LOCAL:
+    # if ENVIRONMENT == "local" and SYNC_LOCAL:
     #     # Download from GCP
     #     from_cloud.main()
 
-    from_cloud.main()
 
     # index
     # 1. Combine extracted data from extraction with bounding boxes from detection into reference_images.csv file
     # 2. Create google vision index
+    # create_import_list.main()
 
     end_time = time.time()
     logger.info("Finished main processing Run")

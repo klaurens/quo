@@ -9,6 +9,7 @@ from processing.logger import logger
 from jsonpath_ng.ext import parse
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
+from processing.utils.utils import save_json
 import time
 
 # Define JSONPath parsers
@@ -89,8 +90,7 @@ def extract_details(json_file):
         logger.info(f"Extracted details for {parent_dir}")
 
         # Write data to details.json in the same directory as the JSON file
-        with open(output_file, "w") as f:
-            json.dump(out_json, f, indent=4)
+        save_json(out_json, output_file)
 
         logger.info(f"Successfully wrote to {output_file}")
 

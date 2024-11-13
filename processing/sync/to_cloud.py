@@ -17,13 +17,14 @@ load_dotenv()
 
 BUCKET_NAME = os.getenv("BUCKET_NAME")
 OVERWRITE_CLOUD = os.getenv("OVERWRITE_CLOUD") == "True"
+SUCCESS_CODE = os.getenv('SUCCESS_CODE')
 
 
 def sync_up(local_file, bucket, upload_lock, upload_count):
     # Create a blob (file) in the GCS bucket
     status = upload_to_gcs(local_file, bucket, OVERWRITE_CLOUD)
     # Safely increment the upload count
-    if status == 1:
+    if status == SUCCESS_CODE:
         with upload_lock:
             upload_count[0] += 1  # Use a list to allow mutable reference
 
@@ -34,14 +35,15 @@ def main():
     bucket = client.bucket(BUCKET_NAME)
 
     # Get all image files in the specified directories
-    listing_files = glob.glob("listing/**/*", recursive=True)
-    details_files = glob.glob("details/**/*", recursive=True)
+    listing_files = glob.glob("alisting/**/*", recursive=True)
+    details_files = glob.glob("adetails/**/*", recursive=True)
+    indices_files = glob.glob("indices/*")
 
     upload_lock = threading.Lock()
     upload_count = [0]  # Use a list to allow mutable reference
 
     # Combine the files from both directories
-    files = listing_files + details_files
+    files = listing_files + details_files + indices_files
     files = [file for file in files if os.path.isfile(file)]
 
     # Sync files to GCS
