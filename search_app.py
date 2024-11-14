@@ -204,5 +204,3 @@ if input_image:
                         use_column_width=True,
                         caption=f"{brand}  \n{product_name}  \n{round(score, 5)}",
                     )
-            else:
-                st.info("Please upload an image or enter a URL to continue.")
