@@ -27,7 +27,8 @@ git clone https://github.com/klaurens/quo.git $REPO_DIR
 
 # Mount the Google Cloud Storage bucket to a separate directory
 mkdir -p $BUCKET_DIR
-gcsfuse --implicit-dirs $BUCKET_NAME $BUCKET_DIR
+gcsfuse --implicit-dirs  $BUCKET_NAME $BUCKET_DIR
+mount -t gcsfuse -o allow_other $BUCKET_NAME $BUCKET_DIR
 
 # Create a Python virtual environment in the final directory (not in the repo dir)
 python3 -m venv venv
