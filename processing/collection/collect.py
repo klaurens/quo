@@ -9,6 +9,12 @@ from typing import List
 from functools import partial
 import time
 
+# Set ROOT_DIR to the root directory of the project, assuming this script is inside `quo/processing/collection`
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+# Add the root directory to the sys.path to allow imports from quo
+sys.path.append(ROOT_DIR)
+
 from processing.logger import logger
 from processing.utils.utils import (
     save_json,
@@ -19,12 +25,6 @@ from dotenv import load_dotenv
 from tokped_scraper import get_brand_listing, get_item_details, get_image
 
 load_dotenv()
-
-# Set ROOT_DIR to the root directory of the project, assuming this script is inside `quo/processing/collection`
-ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-
-# Add the root directory to the sys.path to allow imports from quo
-sys.path.append(ROOT_DIR)
 
 # Configuration constants
 IMAGE_MIN_BYTES = 5000

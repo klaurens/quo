@@ -2,18 +2,19 @@ import os
 import sys
 import glob
 import json
-from processing.logger import logger
-from jsonpath_ng.ext import parse
-from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta
-from processing.utils.utils import save_json
-import time
 
 # Set the root directory dynamically for consistent pathing
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 # Add the root directory to the sys.path to allow imports from quo
 sys.path.append(ROOT_DIR)
+
+from processing.logger import logger
+from jsonpath_ng.ext import parse
+from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
+from processing.utils.utils import save_json
+import time
 
 # Define JSONPath parsers
 BASIC_PARSER = parse("$..basicInfo")
