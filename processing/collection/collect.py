@@ -60,7 +60,7 @@ def scrape_products():
     """Scrapes details for all products in the unified file."""
     scraped_products = []
     json_files = glob.glob(
-        os.path.join(LISTING_DIR, "**", "listing_*.json"), recursive=True
+        os.path.join(LISTING_DIR, "**", "listing_*.json")
     )
     parser = parse("$..GetShopProduct.data")
 

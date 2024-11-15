@@ -35,7 +35,7 @@ def main():
     bucket = client.bucket(BUCKET_NAME)
 
     # Get all image files in the specified directories
-    listing_files = glob.glob("listing/**/*", recursive=True)
+    listing_files = glob.glob("listing/**/*")
     details_files = glob.glob("details/**/*", recursive=True)
     indices_files = glob.glob("indices/*")
 
