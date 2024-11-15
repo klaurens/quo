@@ -35,8 +35,8 @@ def main():
     bucket = client.bucket(BUCKET_NAME)
 
     # Get all image files in the specified directories
-    listing_files = glob.glob("alisting/**/*", recursive=True)
-    details_files = glob.glob("adetails/**/*", recursive=True)
+    listing_files = glob.glob("listing/**/*")
+    details_files = glob.glob("details/**/*", recursive=True)
     indices_files = glob.glob("indices/*")
 
     upload_lock = threading.Lock()
