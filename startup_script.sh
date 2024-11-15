@@ -2,8 +2,7 @@
 
 USER_HOME="/home/$(whoami)"
 REPO_DIR="$USER_HOME/quo-repo"
-BUCKET_DIR="$USER_HOME/quo-bucket"
-FINAL_DIR="$USER_HOME/quo"
+BUCKET_DIR="$USER_HOME/quo"
 BUCKET_NAME="quo-trial"
 
 # Update and install necessary packages
@@ -31,26 +30,20 @@ mkdir -p $BUCKET_DIR
 gcsfuse --implicit-dirs $BUCKET_NAME $BUCKET_DIR
 
 # Create a Python virtual environment in the final directory (not in the repo dir)
-python3 -m venv $FINAL_DIR/venv
-source $FINAL_DIR/venv/bin/activate
+python3 -m venv venv
+source venv/bin/activate
 
 # Install dependencies from the cloned repository
-cd $REPO_DIR
-pip install -r requirements.txt
+pip install -r $REPO_DIR/requirements.txt
 
 # Combine the contents of the repo and the GCS bucket into the final directory
-mkdir -p $FINAL_DIR
-cp -r $REPO_DIR/* $FINAL_DIR/
-cp -r $BUCKET_DIR/* $FINAL_DIR/
+cp -r $REPO_DIR/* $BUCKET_DIR/
 
 # Clean up temporary directories
 # rm -rf $REPO_DIR
 # rm -rf $BUCKET_DIR
 
-# Modify .bashrc to activate the virtual environment on SSH login
-echo 'VENV_DIR="$HOME/quo/venv"' >> $USER_HOME/.bashrc
-echo 'if [ -d "$VENV_DIR" ]; then' >> $USER_HOME/.bashrc
-echo '    source "$VENV_DIR/bin/activate"' >> $USER_HOME/.bashrc
-echo 'fi' >> $USER_HOME/.bashrc
-
 echo "Startup script completed successfully."
+echo "Attempt script run"
+
+python $BUCKET_DIR/processing/main.py
