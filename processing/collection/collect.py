@@ -1,35 +1,43 @@
 import os
 import sys
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-
-from tokped_scraper import get_brand_listing, get_item_details, get_image
 from datetime import datetime, timedelta
 import glob
 import json
 from jsonpath_ng import parse
-from processing.logger import logger
 from concurrent.futures import ThreadPoolExecutor
 from typing import List
 from functools import partial
 import time
-from processing.utils.utils import save_json, sanitize_product_name, create_dir_if_not_exists
+
+from processing.logger import logger
+from processing.utils.utils import (
+    save_json,
+    sanitize_product_name,
+    create_dir_if_not_exists,
+)
 from dotenv import load_dotenv
+from tokped_scraper import get_brand_listing, get_item_details, get_image
 
 load_dotenv()
+
+# Set ROOT_DIR to the root directory of the project, assuming this script is inside `quo/processing/collection`
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+# Add the root directory to the sys.path to allow imports from quo
+sys.path.append(ROOT_DIR)
 
 # Configuration constants
 IMAGE_MIN_BYTES = 5000
 WRITE_DATE = datetime.today().date()
-SOURCE_FILE = "brands.txt"
-DETAILS_DIR = "details"
-LISTING_DIR = "listing"
+SOURCE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brands.txt")
+DETAILS_DIR = os.path.join(ROOT_DIR, "details")
+LISTING_DIR = os.path.join(ROOT_DIR, "listing")
 SCRAPE_OVERWRITE = os.getenv("SCRAPE_OVERWRITE") == "True"
 
 
 def read_brands(source_file: str) -> List[str]:
     """Reads brand names from a file."""
-    with open(os.path.join(os.path.dirname(__file__), source_file), "r") as read_file:
+    with open(source_file, "r") as read_file:
         return [brand.strip() for brand in read_file.readlines()]
 
 
@@ -42,7 +50,7 @@ def scrape_listing(source_file: str = SOURCE_FILE):
             logger.info(f"Fetching brand list for {brand}")
             brand_listing = get_brand_listing(brand_uri=brand)
 
-            file_path = f"{LISTING_DIR}/{brand}/listing_{WRITE_DATE}.json"
+            file_path = os.path.join(LISTING_DIR, brand, f"listing_{WRITE_DATE}.json")
             save_json(brand_listing, file_path)
         except Exception as e:
             logger.error(f"Error scraping brand {brand}: {str(e)}")
@@ -51,14 +59,16 @@ def scrape_listing(source_file: str = SOURCE_FILE):
 def scrape_products():
     """Scrapes details for all products in the unified file."""
     scraped_products = []
-    json_files = glob.glob(f"{LISTING_DIR}/**/listing_*.json")
+    json_files = glob.glob(
+        os.path.join(LISTING_DIR, "**", "listing_*.json"), recursive=True
+    )
     parser = parse("$..GetShopProduct.data")
 
     for json_file in json_files:
         try:
             with open(json_file, "r") as jf:
                 data = json.load(jf)
-            brand = json_file.split("/")[1]
+            brand = os.path.basename(os.path.dirname(json_file))
 
             # Insert brand into the JSON object
             brand_parser = parse("$..GetShopProduct.data[*].brand")
@@ -87,9 +97,8 @@ def scrape_product_details(product: dict):
 
         sanitized_product_name = sanitize_product_name(product_name)
 
-        file_path = (
-            f"{DETAILS_DIR}/{product_brand}/{sanitized_product_name}/details_{WRITE_DATE}.json"
-        )
+        file_dir = os.path.join(DETAILS_DIR, product_brand, sanitized_product_name)
+        file_path = os.path.join(file_dir, f"details_{WRITE_DATE}.json")
         file_exists = os.path.isfile(file_path)
         if not file_exists or SCRAPE_OVERWRITE:
             product_details = get_item_details(product_url)
@@ -102,7 +111,9 @@ def scrape_product_details(product: dict):
 
 def scrape_images():
     """Scrapes images from product details."""
-    json_files = glob.glob(f"{DETAILS_DIR}/**/**/details_*.json")
+    json_files = glob.glob(
+        os.path.join(DETAILS_DIR, "**", "**", "details_*.json"), recursive=True
+    )
     parser = parse("$..urlMaxRes")
 
     for json_file in json_files:
@@ -122,14 +133,14 @@ def scrape_images():
 def fetch_image(link, dir_parts):
     """Fetch and write image file"""
     image_name = link.split("/")[-1]
-    product_brand = dir_parts[1]
-    product_name = dir_parts[2]
+    product_brand = dir_parts[-3]  # Adjusted to use the correct index for brand
+    product_name = dir_parts[-2]  # Adjusted to use the correct index for product name
 
     if image_name[-4:] not in (".png", ".jpg"):
         image_name += ".jpg"
 
-    file_dir = f"{DETAILS_DIR}/{product_brand}/{product_name}/images"
-    file_path = f"{file_dir}/{image_name}"
+    file_dir = os.path.join(DETAILS_DIR, product_brand, product_name, "images")
+    file_path = os.path.join(file_dir, image_name)
     file_exists = os.path.isfile(file_path)
     if not file_exists or SCRAPE_OVERWRITE:
         image_file = get_image(link, brand_uri=product_brand)

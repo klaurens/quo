@@ -1,7 +1,5 @@
 import os
 import sys
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 import glob
 import json
 import numpy as np
@@ -11,11 +9,17 @@ from index import get_older_product_set
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from processing.logger import logger
 
+# Define the root directory path for consistency
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+# Add the root directory to sys.path for importing from the root context
+sys.path.append(ROOT_DIR)
+
 PRODUCT_SET_A_NAME = os.getenv("PRODUCT_SET_A_NAME")
 
 # Load the category mapping
 try:
-    with open("processing/indexing/taxonomy.json", "r") as mapping_file:
+    with open(os.path.join(ROOT_DIR, "processing/indexing/taxonomy.json"), "r") as mapping_file:
         CATEGORY_MAPPING = json.load(mapping_file)
     logger.info("Category mapping loaded successfully.")
 except FileNotFoundError:
@@ -111,7 +115,7 @@ def categorize_product(meta_dict, set_name):
 
 
 def write_to_file(lines, file_index, write_date):
-    filename = f"indices/index_import_{write_date}_{file_index}.csv"
+    filename = os.path.join(ROOT_DIR, f"indices/index_import_{write_date}_{file_index}.csv")
     try:
         with open(filename, "w") as f:
             f.writelines(lines)
@@ -121,7 +125,8 @@ def write_to_file(lines, file_index, write_date):
 
 
 def main():
-    product_paths = glob.glob("details/**/**/")
+    product_paths = glob.glob(os.path.join(ROOT_DIR, "details", "**", "**"))
+
     all_import_lines = []
 
     client = vision.ProductSearchClient()
@@ -137,7 +142,7 @@ def main():
             executor.submit(
                 categorize_product,
                 {
-                    "product_name": os.path.relpath(product_path, "details"),
+                    "product_name": os.path.relpath(product_path, os.path.join(ROOT_DIR, "details")),
                     "info": os.path.join(product_path, "product_info.json"),
                     "images_detect_pairs": get_image_pairs(product_path),
                 },

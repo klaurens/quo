@@ -1,8 +1,5 @@
 import os
 import sys
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-
 import glob
 import json
 from processing.logger import logger
@@ -11,6 +8,12 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from processing.utils.utils import save_json
 import time
+
+# Set the root directory dynamically for consistent pathing
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+# Add the root directory to the sys.path to allow imports from quo
+sys.path.append(ROOT_DIR)
 
 # Define JSONPath parsers
 BASIC_PARSER = parse("$..basicInfo")
@@ -78,7 +81,7 @@ def extract_details(json_file):
             "shop_id": shop_id,
             "shop_name": shop_name,
             "url": url,
-            "price" : price,
+            "price": price,
             "parent_id": parent_id,
             "description": description,
             "category": category,
@@ -99,8 +102,8 @@ def extract_details(json_file):
 
 
 def main():
-    # Get list of JSON files
-    files = glob.glob("details/**/**/details_*.json")
+    # Get list of JSON files from the details directory
+    files = glob.glob(os.path.join(ROOT_DIR, "details", "**", "**", "details_*.json"))
 
     # Track execution time
     start_time = time.time()
