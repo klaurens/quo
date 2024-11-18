@@ -32,6 +32,10 @@ def extract_details(json_file):
         parent_dir = os.path.dirname(json_file)
         output_file = os.path.join(parent_dir, OUT_FILE_NAME)
 
+        if os.path.exists(output_file):
+            logger.info(f"File exists, skipping extraction: {json_file}")
+            return
+
         logger.info(f"Processing file: {json_file}")
 
         # Open and parse JSON file
