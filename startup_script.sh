@@ -40,7 +40,7 @@ pip install -r $REPO_DIR/requirements.txt
 # Combine the contents of the repo and the GCS bucket into the final directory
 cp -r $REPO_DIR/* $BUCKET_DIR/
 
-chmod -R 777 "$REPO_DIR" "$VENV_DIR"
+chmod -R 777 "$REPO_DIR"
 
 # Clean up temporary directories
 # rm -rf $REPO_DIR

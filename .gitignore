@@ -167,7 +167,7 @@ products/
 details/
 listing/
 unified/
-saved_models/
+model/
 argon*.json
 indices/
 logs/*

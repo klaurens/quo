@@ -28,10 +28,7 @@ MODEL_DIR = os.getenv("MODEL_DIR")
 DETECT_MAX_BOXES = os.getenv("DETECT_MAX_BOXES")
 DETECT_MIN_THRESH = os.getenv("DETECT_MIN_THRESH")
 OVERWITE_DETECTION = os.getenv("OVERWITE_DETECTION") == "True"
-OUTPUT_SUBDIR=os.getenv("OUTPUT_SUBDIR")
-
-# Load the model
-MODEL = tf.saved_model.load(MODEL_DIR)
+OUTPUT_SUBDIR = os.getenv("OUTPUT_SUBDIR")
 
 
 def read_labels():
@@ -99,18 +96,16 @@ def visualize_detections(
     result, np_boxes, np_classes, np_scores, label_map_dict, np_masks
 ):
     """Visualizes bounding boxes and labels on the image array."""
-    image_with_detections = (
-        visualization_utils.visualize_boxes_and_labels_on_result(
-            result,
-            np_boxes,
-            np_classes,
-            np_scores,
-            label_map_dict,
-            instance_masks=np_masks,
-            use_normalized_coordinates=False,
-            max_boxes_to_draw=DETECT_MAX_BOXES,
-            min_score_thresh=DETECT_MIN_THRESH,
-        )
+    image_with_detections = visualization_utils.visualize_boxes_and_labels_on_result(
+        result,
+        np_boxes,
+        np_classes,
+        np_scores,
+        label_map_dict,
+        instance_masks=np_masks,
+        use_normalized_coordinates=False,
+        max_boxes_to_draw=DETECT_MAX_BOXES,
+        min_score_thresh=DETECT_MIN_THRESH,
     )
     logger.info("Image visualization completed.")
     return image_with_detections
@@ -119,10 +114,10 @@ def visualize_detections(
 def infer_single_image(image_file, label_map_dict):
     """Performs inference on a single image file and returns detection results."""
     output_dir = os.path.join(os.path.dirname(image_file), OUTPUT_SUBDIR)
-    output_path = os.path.join(output_dir, os.path.basename(image_file) + '.npy')
+    output_path = os.path.join(output_dir, os.path.basename(image_file) + ".npy")
     if os.path.exists(output_path) and not OVERWITE_DETECTION:
-       logger.info(f"{output_path} exists, skipping detection")
-    
+        logger.info(f"{output_path} exists, skipping detection")
+
     input_tensor, (height, width, _) = process_image(image_file)
     input_tensor = tf.expand_dims(input_tensor, axis=0)
     if input_tensor is None:
@@ -177,7 +172,7 @@ def infer_single_image(image_file, label_map_dict):
 def save_detection(result):
     """Saves the visualized image back to the original folder or a subdirectory."""
     # Define the output path, using the original directory with a subdirectory for processed files
-    image_file = result['image_file']
+    image_file = result["image_file"]
     output_dir = os.path.join(os.path.dirname(image_file), OUTPUT_SUBDIR)
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, os.path.basename(image_file))
@@ -189,8 +184,6 @@ def save_detection(result):
     # visualized_image = Image.fromarray(result)
     # visualized_image.save(output_path)
     # logger.info(f"Saved visualized image to {output_path}")
-
-    
 
 
 def main():
@@ -214,12 +207,14 @@ def main():
                 with results_lock:
                     results[0] += 1
 
-                
-
     logger.info(f"Processed {results[0]} images")
 
 
 if __name__ == "__main__":
+
+    # Load the model
+    MODEL = tf.saved_model.load(MODEL_DIR)
+
     start_time = time.time()
 
     logger.info("Starting detection process")
