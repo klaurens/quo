@@ -34,19 +34,29 @@ if __name__ == "__main__":
     #     from_cloud.main()
 
     ## collect
+    print("Starting Collection")
     collect.main()
+    print("Finished Collection")
 
     ## detection
     ## Detect bounding boxes with fpedia model
+    print("Starting Detection")
     detect.main()
+    print("Finished Detection")
+
 
     ## extraction
+    print("Starting Extraction")
     extract.main()
+    print("Finished Extraction")
 
     ## index
     ## 1. Combine extracted data from extraction with bounding boxes from detection into reference_images.csv file
     ## 2. Create google vision index
+    print("Starting Index")
     create_import_list.main()
+    index.main()
+    print("Finished Index")
 
     ## Sync
     ## upload to gcp if necessary here
