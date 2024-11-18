@@ -190,6 +190,7 @@ def main():
     label_map_dict = read_labels()
     image_pattern = "details/**/**/images/*.[jp][pn]g"
     image_files = set(glob.glob(image_pattern, recursive=True))
+    print(image_files[:20])
     results_lock = threading.Lock()
     results = [0]
 

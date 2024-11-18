@@ -84,7 +84,7 @@ def scrape_products():
         product for product_list in scraped_products for product in product_list
     ]
 
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers=8) as executor:
         executor.map(scrape_product_details, products)
 
 
