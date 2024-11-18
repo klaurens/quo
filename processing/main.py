@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     ## collect
     print("Starting Collection")
-    collect.main()
+    # collect.main()
     print("Finished Collection")
 
     ## detection
