@@ -12,4 +12,4 @@ protobuf
 Pillow
 pycocotools
 tqdm
-opencv-python
+opencv-python-headless
