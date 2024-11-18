@@ -24,6 +24,9 @@ sudo apt-get install -y  gcsfuse
 
 # Clone the GitHub repository into a separate directory
 git clone https://github.com/klaurens/quo.git $REPO_DIR
+cd $REPO_DIR 
+git pull
+cd $USER_HOME
 
 # Mount the Google Cloud Storage bucket to a separate directory
 mkdir -p $BUCKET_DIR
