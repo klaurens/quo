@@ -20,7 +20,9 @@ PRODUCT_SET_B_NAME = os.getenv("PRODUCT_SET_B_NAME")
 
 # Load the category mapping
 try:
-    with open(os.path.join(ROOT_DIR, "processing/indexing/taxonomy.json"), "r") as mapping_file:
+    with open(
+        os.path.join(ROOT_DIR, "processing/indexing/taxonomy.json"), "r"
+    ) as mapping_file:
         CATEGORY_MAPPING = json.load(mapping_file)
     logger.info("Category mapping loaded successfully.")
 except FileNotFoundError:
@@ -106,7 +108,7 @@ def categorize_product(meta_dict, set_name):
     product_labels = f'category={category_desc.replace(", ","|")},brand={info.get("shop_name", "Unknown")},price={info.get("price", 0)}'
 
     import_lines = [
-        f'"gs://quo-trial/{image}",,"{set_name}","{product_id}","{product_category}","{product_display_name}","{product_labels}","{",".join(map(str, box))}"\n'
+        f'"gs://quo-trial/{image.replace("/home/root/quo/", "")}",,"{set_name}","{product_id}","{product_category}","{product_display_name}","{product_labels}","{",".join(map(str, box))}"\n'
         for image, box in bounding_boxes.items()
     ]
     logger.info(
@@ -116,7 +118,9 @@ def categorize_product(meta_dict, set_name):
 
 
 def write_to_file(lines, file_index, write_date):
-    filename = os.path.join(ROOT_DIR, f"indices/index_import_{write_date}_{file_index}.csv")
+    filename = os.path.join(
+        ROOT_DIR, f"indices/index_import_{write_date}_{file_index}.csv"
+    )
     try:
         with open(filename, "w") as f:
             f.writelines(lines)
@@ -136,7 +140,6 @@ def main():
 
     if set_name in old_set_path.name:
         set_name = PRODUCT_SET_B_NAME
-    
 
     logger.info("Starting product categorization.")
     with ThreadPoolExecutor(max_workers=10) as executor:
@@ -144,7 +147,9 @@ def main():
             executor.submit(
                 categorize_product,
                 {
-                    "product_name": os.path.relpath(product_path, os.path.join(ROOT_DIR, "details")),
+                    "product_name": os.path.relpath(
+                        product_path, os.path.join(ROOT_DIR, "details")
+                    ),
                     "info": os.path.join(product_path, "product_info.json"),
                     "images_detect_pairs": get_image_pairs(product_path),
                 },
