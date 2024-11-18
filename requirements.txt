@@ -5,4 +5,11 @@ streamlit
 matplotlib
 jsonpath-ng
 python-dotenv
+
+# detection
 tensorflow[and-cuda]==2.17
+protobuf
+pycocotools
+Pillow==9.0.0
+tqdm
+opencv-python
