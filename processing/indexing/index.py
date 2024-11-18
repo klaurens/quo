@@ -30,7 +30,7 @@ def get_latest_index_files():
     if files:
         latest_file = files[0]
         logger.info(f"Latest file found: {latest_file}")
-        latest_file_date = latest_file.split('_')[2]
+        latest_file_date = latest_file.split("_")[2]
         latest_files = sorted([file for file in files if latest_file_date in file])
         return latest_files
     else:
@@ -42,11 +42,13 @@ def delete_product_set(client, product_set_id):
     """Delete a specified product set."""
     # client.delete_product_set(name=product_set_path)
     if product_set_id == None:
-        logger.warning('No product set id given, skipping delete')
+        logger.warning("No product set id given, skipping delete")
         return
-
+    product_set = product_set_id.name.split("/")[-1]
     product_set_path = client.product_set_path(
-        project=PROJECT_ID, location=LOCATION, product_set=product_set_id
+        project=PROJECT_ID,
+        location=LOCATION,
+        product_set=product_set,
     )
 
     # Delete the product set.
@@ -59,7 +61,9 @@ def import_product_sets(client, gcs_uris):
     location_path = f"projects/{PROJECT_ID}/locations/{LOCATION}"
 
     for gcs_uri in gcs_uris:
-        logger.info(f"Indexing {gcs_uri} ({gcs_uris.index(gcs_uri) + 1}/{len(gcs_uris)})")
+        logger.info(
+            f"Indexing {gcs_uri} ({gcs_uris.index(gcs_uri) + 1}/{len(gcs_uris)})"
+        )
         gcs_source = vision.ImportProductSetsGcsSource(
             csv_file_uri=f"gs://{BUCKET_NAME}/{gcs_uri}"
         )

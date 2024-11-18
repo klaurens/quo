@@ -16,6 +16,7 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.append(ROOT_DIR)
 
 PRODUCT_SET_A_NAME = os.getenv("PRODUCT_SET_A_NAME")
+PRODUCT_SET_B_NAME = os.getenv("PRODUCT_SET_B_NAME")
 
 # Load the category mapping
 try:
@@ -132,8 +133,9 @@ def main():
     client = vision.ProductSearchClient()
     old_set_path, new_set_id = get_older_product_set(client)
     set_name = PRODUCT_SET_A_NAME
-    if new_set_id:
-        set_name = new_set_id.name.split("/")[-1]
+
+    if set_name in old_set_path.name:
+        set_name = PRODUCT_SET_B_NAME
     
 
     logger.info("Starting product categorization.")
