@@ -7,7 +7,7 @@ BUCKET_NAME="quo-trial"
 
 # Update and install necessary packages
 sudo apt-get update -y
-sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release python3-pip python3.11-venv git-all
+sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release python3-pip python3.11-venv git-all libjpeg-dev
 
 # Install gcsfuse
 # echo "deb http://packages.cloud.google.com/apt gcsfuse-stable main" | tee -a /etc/apt/sources.list.d/gcsfuse.list
@@ -27,8 +27,8 @@ git clone https://github.com/klaurens/quo.git $REPO_DIR
 
 # Mount the Google Cloud Storage bucket to a separate directory
 mkdir -p $BUCKET_DIR
-gcsfuse --implicit-dirs  $BUCKET_NAME $BUCKET_DIR
-mount -t gcsfuse -o allow_other $BUCKET_NAME $BUCKET_DIR
+gcsfuse --implicit-dirs -file-mode=777 -dir-mode=777 $BUCKET_NAME $BUCKET_DIR
+# mount -t gcsfuse -o allow_other $BUCKET_NAME $BUCKET_DIR
 
 # Create a Python virtual environment in the final directory (not in the repo dir)
 python3 -m venv venv
