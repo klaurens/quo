@@ -41,13 +41,13 @@ if __name__ == "__main__":
     ## detection
     ## Detect bounding boxes with fpedia model
     print("Starting Detection")
-    detect.main()
+    # detect.main()
     print("Finished Detection")
 
 
     ## extraction
     print("Starting Extraction")
-    extract.main()
+    # extract.main()
     print("Finished Extraction")
 
     ## index
