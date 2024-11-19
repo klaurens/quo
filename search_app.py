@@ -72,7 +72,7 @@ def get_similar_products_file(
 def get_related_images(input_image):
     project_id = "argon-producer-437209-a7"
     location = "us-east1"
-    product_set_id = "set_A"
+    product_set_id = "set_B"
     product_category = "apparel-v2"
     file_path = input_image
     filter = ""

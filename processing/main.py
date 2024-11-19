@@ -3,16 +3,16 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "collection")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "extraction")))
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "detection")))
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "detection")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "sync")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "indexing")))
 
 import time
 from collection import collect
 from extraction import extract
-from detection import detect
+# from detection import detect
 from sync import to_cloud, from_cloud
-from indexing import create_import_list, index
+from indexing import create_import_list2, index2
 from logger import logger
 from datetime import timedelta
 from dotenv import load_dotenv
@@ -29,42 +29,42 @@ if __name__ == "__main__":
     start_time = time.time()
     logger.info("Starting main processing")
 
-    # if ENVIRONMENT == "local" and SYNC_LOCAL:
-    #     ## Download from GCP
-    #     from_cloud.main()
+    if ENVIRONMENT == "local" and SYNC_LOCAL:
+        ## Download from GCP
+        from_cloud.main()
 
     ## collect
     print("Starting Collection")
-    # collect.main()
+    collect.main()
     print("Finished Collection")
 
     ## detection
     ## Detect bounding boxes with fpedia model
-    print("Starting Detection")
+    # print("Starting Detection")
     # detect.main()
-    print("Finished Detection")
+    # print("Finished Detection")
 
 
     ## extraction
     print("Starting Extraction")
-    # extract.main()
+    extract.main()
     print("Finished Extraction")
 
     ## index
     ## 1. Combine extracted data from extraction with bounding boxes from detection into reference_images.csv file
     ## 2. Create google vision index
     print("Starting Index")
-    # create_import_list.main()
-    index.main()
-    print("Finished Index")
+    create_import_list2.main()
 
-    ## Sync
-    ## upload to gcp if necessary here
+    # Sync
+    # upload to gcp if necessary here
     if ENVIRONMENT == "local" and SYNC_GCP:
-        ## Upload to GCP
+        # Upload to GCP
         to_cloud.main()
 
-    # index.main()
+    index2.main()
+    print("Finished Index")
+
 
     end_time = time.time()
     logger.info("Finished main processing Run")
