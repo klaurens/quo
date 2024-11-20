@@ -3,14 +3,14 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "collection")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "extraction")))
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "detection")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "detection")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "sync")))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "indexing")))
 
 import time
 from collection import collect
 from extraction import extract
-# from detection import detect
+from detection import detect
 from sync import to_cloud, from_cloud
 from indexing import create_import_list2, index2
 from logger import logger
@@ -40,9 +40,9 @@ if __name__ == "__main__":
 
     ## detection
     ## Detect bounding boxes with fpedia model
-    # print("Starting Detection")
-    # detect.main()
-    # print("Finished Detection")
+    print("Starting Detection")
+    detect.main()
+    print("Finished Detection")
 
 
     ## extraction
