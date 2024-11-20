@@ -6,6 +6,7 @@ sys.path.append(ROOT_DIR)
 import glob
 import json
 import time
+import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from threading import Lock
@@ -20,10 +21,22 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 OUTPUT_DIR = os.path.join(ROOT_DIR, "indices")
 
 # PRODUCT_SET_NAME = os.getenv("PRODUCT_SET_A_NAME", "default_set")
-PRODUCT_SET_NAME = 'test-set'
+PRODUCT_SET_NAME = "test-set"
 BUCKET_DIR = os.getenv("BUCKET_NAME")
 BATCH_SIZE = int(os.getenv("BATCH_SIZE"))
 DATETIME_FORMAT = os.getenv("DATETIME_FORMAT")
+EXTRACT_FILENAME = os.getenv("EXTRACT_FILENAME")
+
+try:
+    with open(
+        os.path.join(ROOT_DIR, "processing/indexing/taxonomy.json"), "r"
+    ) as mapping_file:
+        CATEGORY_MAPPING = json.load(mapping_file)
+    logger.info("Category mapping loaded successfully.")
+except FileNotFoundError:
+    logger.error("Category mapping file not found.")
+except json.JSONDecodeError as e:
+    logger.error(f"Error decoding category mapping: {e}")
 
 
 # Utility Functions
@@ -35,7 +48,7 @@ def get_product_images(product_path):
 def get_product_details(product_path):
     """Load product details from the product_info.json file."""
     try:
-        detail_path = glob.glob(os.path.join(product_path, "product_info.json"))
+        detail_path = glob.glob(os.path.join(product_path, EXTRACT_FILENAME))
         if detail_path:
             with open(detail_path[0], "r") as f:
                 return json.load(f)
@@ -54,29 +67,64 @@ def sanitize_image_path(image_path):
     return clean_path
 
 
+def get_category_code(product_info):
+    mapped_code = CATEGORY_MAPPING.get(product_info["category"], None)
+    code = mapped_code.split(": ")[0]
+
+    return code
+
+
+def get_bounding_box(image, category_code):
+    head, tail = os.path.split(image)
+
+    processed_path = os.path.join(head, "processed", f"{tail}.npy")
+    if os.path.exists(processed_path) and category_code:
+        detection_data = np.load(processed_path, allow_pickle=True).item()
+        bounding_boxes = [
+            (x1, y1, x2, y2)
+            for i, class_id in enumerate(detection_data["classes"])
+            if class_id == int(category_code)
+            for y1, x1, y2, x2 in [detection_data["boxes"][i].astype(int)]
+        ]
+
+        if bounding_boxes:
+            largest_box = max(
+                bounding_boxes, key=lambda b: (b[2] - b[0]) * (b[3] - b[1])
+            )
+
+            logger.info(f"Selected largest bounding box for {image}: {largest_box}")
+            box_string = ",".join(map(str, largest_box))
+            return f'"{box_string}"'
+    logger.warning(f"No bounding box found for {image}")
+    return ""  # Don't return None
+
+
 def compile_product_data(product_path, lines, lines_lock):
     """Compile data for a single product and append to the shared lines list."""
     images = get_product_images(product_path)
-    details = get_product_details(product_path)
+    product_info = get_product_details(product_path)
 
-    if not images or not details:
+    if not images or not product_info:
         logger.info(f"Missing images or details file for {product_path}")
         return
 
     product_display_name = os.path.basename(product_path)
-    product_id = details.get("product_id", "Unknown")
+    product_id = product_info.get("product_id", "Unknown")
     product_category = "apparel-v2"
     product_labels = (
-        f'category={details.get("category", "no-cat")},'
-        f'brand={details.get("shop_name", "Unknown")},'
-        f'price={details.get("price", 0)}'
+        f'category={product_info.get("category", "no-cat")},'
+        f'brand={product_info.get("shop_name", "Unknown")},'
+        f'price={product_info.get("price", 0)}'
     )
 
     for image in images:
         image_loc = sanitize_image_path(image)
+        category_code = get_category_code(product_info)
+        bbox = get_bounding_box(image, category_code)
         csv_line = (
             f'"gs://quo-trial/{image_loc}",,"{PRODUCT_SET_NAME}","{product_id}",'
-            f'"{product_category}","{product_display_name}","{product_labels}",\n'
+            f'"{product_category}","{product_display_name}","{product_labels}",'
+            f'{bbox if bbox else ""}\n'
         )
         with lines_lock:
             lines.append(csv_line)
@@ -85,7 +133,9 @@ def compile_product_data(product_path, lines, lines_lock):
 
 def write_batch_to_file(lines, batch_index, write_date):
     """Write a batch of lines to a file."""
-    filename = os.path.join(OUTPUT_DIR, f"index_{PRODUCT_SET_NAME}_{write_date}_{batch_index}.csv")
+    filename = os.path.join(
+        OUTPUT_DIR, f"index_{PRODUCT_SET_NAME}_{write_date}_{batch_index}.csv"
+    )
     try:
         with open(filename, "w") as f:
             f.writelines(lines)

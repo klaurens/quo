@@ -22,15 +22,16 @@ PARENT_ID_PARSER = parse("$..parentID")
 DESC_PARSER = parse("$..content[?(@.title=='Deskripsi')].subtitle")
 CHILD_PARSER = parse("$..pdpGetLayout..children[*]")
 PRICE_PARSER = parse("$..price.value")
-OUT_FILE_NAME = "product_info.json"
+EXTRACT_FILENAME = os.getenv("EXTRACT_FILENAME")
 CATEGORY_BREADCRUMB_URI = "https://www.tokopedia.com/p/"
+DETAILS_FILENAME = os.getenv("DETAILS_FILENAME")
 
 
 def extract_details(json_file):
     try:
         # Determine parent directory path
         parent_dir = os.path.dirname(json_file)
-        output_file = os.path.join(parent_dir, OUT_FILE_NAME)
+        output_file = os.path.join(parent_dir, EXTRACT_FILENAME)
 
         if os.path.exists(output_file):
             logger.info(f"File exists, skipping extraction: {json_file}")
@@ -108,7 +109,7 @@ def extract_details(json_file):
 
 def main():
     # Get list of JSON files from the details directory
-    files = glob.glob(os.path.join(ROOT_DIR, "details", "**", "**", "details_*.json"))
+    files = glob.glob(os.path.join(ROOT_DIR, "details", "**", "**", DETAILS_FILENAME))
 
     # Track execution time
     start_time = time.time()

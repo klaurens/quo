@@ -33,6 +33,7 @@ SOURCE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brands.t
 DETAILS_DIR = os.path.join(ROOT_DIR, "details")
 LISTING_DIR = os.path.join(ROOT_DIR, "listing")
 SCRAPE_OVERWRITE = os.getenv("SCRAPE_OVERWRITE") == "True"
+DETAILS_FILENAME = os.getenv("DETAILS_FILENAME")
 
 
 def read_brands(source_file: str) -> List[str]:
@@ -98,7 +99,7 @@ def scrape_product_details(product: dict):
         sanitized_product_name = sanitize_product_name(product_name)
 
         file_dir = os.path.join(DETAILS_DIR, product_brand, sanitized_product_name)
-        file_path = os.path.join(file_dir, f"details_{WRITE_DATE}.json")
+        file_path = os.path.join(file_dir, DETAILS_FILENAME)
         file_exists = os.path.isfile(file_path)
         if not file_exists or SCRAPE_OVERWRITE:
             product_details = get_item_details(product_url)
@@ -112,7 +113,7 @@ def scrape_product_details(product: dict):
 def scrape_images():
     """Scrapes images from product details."""
     json_files = glob.glob(
-        os.path.join(DETAILS_DIR, "**", "**", "details_*.json"), recursive=True
+        os.path.join(DETAILS_DIR, "**", "**", DETAILS_FILENAME)
     )
     parser = parse("$..urlMaxRes")
 
@@ -123,7 +124,7 @@ def scrape_images():
             links = [link.value for link in parser.find(data)]
 
             dir_parts = json_file.split("/")
-            with ThreadPoolExecutor(max_workers=4) as executor:
+            with ThreadPoolExecutor(max_workers=8) as executor:
                 executor.map(partial(fetch_image, dir_parts=dir_parts), links)
 
         except Exception as e:

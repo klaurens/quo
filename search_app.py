@@ -69,10 +69,10 @@ def get_similar_products_file(
     return results, segment
 
 
-def get_related_images(input_image):
+def get_related_images(input_image, set):
     project_id = "argon-producer-437209-a7"
     location = "us-east1"
-    product_set_id = "set_B"
+    product_set_id = set
     product_category = "apparel-v2"
     file_path = input_image
     filter = ""
@@ -153,8 +153,10 @@ if input_image:
     # Display the input image
     st.image(input_image, caption="Input Image", use_column_width="auto")
 
+    index = st.selectbox("Select an Index", ('test-set','set_A','set_B'))
+
     # Get related images (mock function)
-    related_images, segments = get_related_images(input_image)
+    related_images, segments = get_related_images(input_image, set=index)
     segmented_images = segment_images(segments, img_array.shape, img_array)
     seg_cols = st.columns(len(segments))
     for i, seg_img in enumerate(segmented_images):
