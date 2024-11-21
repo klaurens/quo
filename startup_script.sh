@@ -23,9 +23,17 @@ sudo apt-get install -y  gcsfuse
 
 
 # Clone the GitHub repository into a separate directory
-git clone https://github.com/klaurens/quo.git $REPO_DIR
-cd $REPO_DIR 
-git reset --hard origin
+# Ensure the repository directory exists and reset its state
+if [ -d "$REPO_DIR" ]; then
+    echo "Repository directory exists. Resetting to source."
+    cd $REPO_DIR
+    git fetch --all
+    git reset --hard origin/main
+else
+    echo "Cloning repository into new directory."
+    git clone https://github.com/klaurens/quo.git $REPO_DIR
+fi
+
 cd $USER_HOME
 
 # Mount the Google Cloud Storage bucket to a separate directory
