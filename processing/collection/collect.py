@@ -129,6 +129,7 @@ def scrape_product_details(product: dict):
 
 def scrape_images():
     """Scrapes images from product details."""
+    logger.info("Globbing Image URIs to Collect.")
     json_files = glob.glob(os.path.join(DETAILS_DIR, "**", "**", DETAILS_FILENAME))
     parser = parse("$..urlMaxRes")
 
@@ -167,6 +168,8 @@ def fetch_image(link, dir_parts):
             logger.info(f"Image saved at {file_path}")
         else:
             logger.info(f"Skipped saving image: {link} (too small/broken image)")
+    else:
+        logger.info(f"Image Exists: {link}, skipping download")
 
 
 def extract_details(product_json):
