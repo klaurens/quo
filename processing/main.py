@@ -44,11 +44,10 @@ if __name__ == "__main__":
     detect.main()
     print("Finished Detection")
 
-
     ## extraction
-    print("Starting Extraction")
-    extract.main()
-    print("Finished Extraction")
+    # print("Starting Extraction")
+    # extract.main()
+    # print("Finished Extraction")
 
     ## index
     ## 1. Combine extracted data from extraction with bounding boxes from detection into reference_images.csv file
@@ -58,13 +57,14 @@ if __name__ == "__main__":
 
     # Sync
     # upload to gcp if necessary here
-    if ENVIRONMENT == "local" and SYNC_GCP:
-        # Upload to GCP
-        to_cloud.main()
+    to_cloud.main("indices")
 
     index2.main()
     print("Finished Index")
 
+    if ENVIRONMENT == "local" and SYNC_GCP:
+        # Upload to GCP
+        to_cloud.main("all")
 
     end_time = time.time()
     logger.info("Finished main processing Run")

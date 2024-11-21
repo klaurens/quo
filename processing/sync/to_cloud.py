@@ -8,7 +8,7 @@ from processing.logger import logger
 from processing.utils.utils import upload_to_gcs
 from functools import partial
 from concurrent.futures import ThreadPoolExecutor
-import threading
+from threading import Lock
 import time
 from datetime import timedelta
 from dotenv import load_dotenv
@@ -29,36 +29,50 @@ def sync_up(local_file, bucket, upload_lock, upload_count):
             upload_count[0] += 1  # Use a list to allow mutable reference
 
 
-def main():
+def main(upload_list='all'):
     # Initialize the GCS client
     client = storage.Client()
     bucket = client.bucket(BUCKET_NAME)
 
-    # Get all image files in the specified directories
-    listing_files = glob.glob("listing/**/*")
-    details_files = glob.glob("details/**/*", recursive=True)
-    indices_files = glob.glob("indices/*")
+    # Define file paths
+    file_groups = {
+        'listing': glob.glob("listing/**/*"),
+        'details': glob.glob("details/**/*", recursive=True),
+        'indices': glob.glob("indices/*"),
+    }
 
-    upload_lock = threading.Lock()
-    upload_count = [0]  # Use a list to allow mutable reference
+    # Select files to upload
+    if upload_list == 'all':
+        files = sum(file_groups.values(), [])  # Combine all files
+    elif isinstance(upload_list, list):
+        files = sum((file_groups.get(group, []) for group in upload_list), [])
+    else:
+        logger.error("Invalid upload_list argument")
+        return
 
-    # Combine the files from both directories
-    files = listing_files + details_files + indices_files
+    # Filter only valid files
     files = [file for file in files if os.path.isfile(file)]
+    if not files:
+        logger.info("No files to upload.")
+        return
 
-    # Sync files to GCS
+    # Upload files to GCS
+    upload_count = 0
+    upload_lock = Lock()
+
+    def sync_with_lock(file_path):
+        nonlocal upload_count
+        try:
+            sync_up(file_path, bucket)
+            with upload_lock:
+                upload_count += 1
+        except Exception as e:
+            logger.error(f"Failed to upload {file_path}: {e}")
+
     with ThreadPoolExecutor(max_workers=10) as executor:
-        executor.map(
-            partial(
-                sync_up,
-                bucket=bucket,
-                upload_count=upload_count,
-                upload_lock=upload_lock,
-            ),
-            files,
-        )
+        executor.map(sync_with_lock, files)
 
-    logger.info(f"Total uploaded files: {upload_count[0]}")
+    logger.info(f"Total uploaded files: {upload_count}")
 
 
 if __name__ == "__main__":

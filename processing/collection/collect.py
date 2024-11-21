@@ -3,7 +3,7 @@ import sys
 from datetime import datetime, timedelta
 import glob
 import json
-from jsonpath_ng import parse
+from jsonpath_ng.ext import parse
 from concurrent.futures import ThreadPoolExecutor
 from typing import List
 from functools import partial
@@ -35,6 +35,14 @@ LISTING_DIR = os.path.join(ROOT_DIR, "listing")
 SCRAPE_OVERWRITE = os.getenv("SCRAPE_OVERWRITE") == "True"
 DETAILS_FILENAME = os.getenv("DETAILS_FILENAME")
 
+BASIC_PARSER = parse("$..basicInfo")
+PARENT_ID_PARSER = parse("$..parentID")
+DESC_PARSER = parse("$..content[?(@.title=='Deskripsi')].subtitle")
+CHILD_PARSER = parse("$..pdpGetLayout..children[*]")
+PRICE_PARSER = parse("$..price.value")
+EXTRACT_FILENAME = os.getenv("EXTRACT_FILENAME")
+CATEGORY_BREADCRUMB_URI = "https://www.tokopedia.com/p/"
+
 
 def read_brands(source_file: str) -> List[str]:
     """Reads brand names from a file."""
@@ -60,9 +68,7 @@ def scrape_listing(source_file: str = SOURCE_FILE):
 def scrape_products():
     """Scrapes details for all products in the unified file."""
     scraped_products = []
-    json_files = glob.glob(
-        os.path.join(LISTING_DIR, "**", "listing_*.json")
-    )
+    json_files = glob.glob(os.path.join(LISTING_DIR, "**", "listing_*.json"))
     parser = parse("$..GetShopProduct.data")
 
     for json_file in json_files:
@@ -98,23 +104,32 @@ def scrape_product_details(product: dict):
 
         sanitized_product_name = sanitize_product_name(product_name)
 
-        file_dir = os.path.join(DETAILS_DIR, product_brand, sanitized_product_name)
-        file_path = os.path.join(file_dir, DETAILS_FILENAME)
-        file_exists = os.path.isfile(file_path)
-        if not file_exists or SCRAPE_OVERWRITE:
+        # Save product detail
+        product_dir = os.path.join(DETAILS_DIR, product_brand, sanitized_product_name)
+        details_path = os.path.join(product_dir, DETAILS_FILENAME)
+        details_exists = os.path.isfile(details_path)
+        if not details_exists or SCRAPE_OVERWRITE:
             product_details = get_item_details(product_url)
-            save_json(product_details, file_path)
+            save_json(product_details, details_path)
         else:
-            logger.info(f"File exists. Skipping {file_path}")
+            logger.info(f"File exists, skipping details save: {product_dir}")
+
+        # Extract and simplify details to product_info
+        extract_path = os.path.join(product_dir, EXTRACT_FILENAME)
+        extract_exists = os.path.isfile(extract_path)
+        if not extract_exists or SCRAPE_OVERWRITE:
+            logger.info(f"Extracting file: {sanitized_product_name}")
+            product_info = extract_details(product_details)
+            save_json(product_info, extract_path)
+        else:
+            logger.info(f"File exists, skipping extraction: {product_dir}")
     except Exception as e:
         logger.error(f"Error scraping product {product['name']}: {str(e)}")
 
 
 def scrape_images():
     """Scrapes images from product details."""
-    json_files = glob.glob(
-        os.path.join(DETAILS_DIR, "**", "**", DETAILS_FILENAME)
-    )
+    json_files = glob.glob(os.path.join(DETAILS_DIR, "**", "**", DETAILS_FILENAME))
     parser = parse("$..urlMaxRes")
 
     for json_file in json_files:
@@ -152,6 +167,66 @@ def fetch_image(link, dir_parts):
             logger.info(f"Image saved at {file_path}")
         else:
             logger.info(f"Skipped saving image: {link} (too small/broken image)")
+
+
+def extract_details(product_json):
+    try:
+        # Extract relevant information using JSONPath parsers
+        basic_info = BASIC_PARSER.find(product_json)
+        if basic_info:
+            basic_info = basic_info[0].value
+            product_id = basic_info.get("id")
+            shop_id = basic_info.get("shopID")
+            shop_name = basic_info.get("shopName")
+            url = basic_info.get("url")
+            category_breadcrumb = basic_info.get("category").get("breadcrumbURL")
+            category_tree = category_breadcrumb.replace(
+                CATEGORY_BREADCRUMB_URI, ""
+            ).split("/")
+            category = category_tree[-1]
+        else:
+            product_id = shop_id = shop_name = url = category = category_tree = None
+
+        parsed_parent_id = PARENT_ID_PARSER.find(product_json)
+        parsed_desc = DESC_PARSER.find(product_json)
+        parsed_children = CHILD_PARSER.find(product_json)
+        parsed_price = PRICE_PARSER.find(product_json)
+
+        # Get values if they exist
+        parent_id = parsed_parent_id[0].value if parsed_parent_id else None
+        description = parsed_desc[0].value if parsed_desc else None
+        price = parsed_price[0].value if parsed_price else None
+
+        flattened_children = (
+            [
+                {
+                    "productID": child.value["productID"],
+                    "optionName": ", ".join(child.value["optionName"]),
+                }
+                for child in parsed_children
+            ]
+            if parsed_children
+            else None
+        )
+
+        # Create dictionary to store extracted details
+        out_json = {
+            "product_id": product_id,
+            "shop_id": shop_id,
+            "shop_name": shop_name,
+            "url": url,
+            "price": price,
+            "parent_id": parent_id,
+            "description": description,
+            "category": category,
+            "category_tree": category_tree,
+            "children": flattened_children,
+        }
+
+        return out_json
+
+    except Exception as e:
+        logger.error(f"Failed to process {product_json}: {e}")
 
 
 def main():

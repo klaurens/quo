@@ -22,7 +22,7 @@ DATETIME_FORMAT = os.getenv("DATETIME_FORMAT")
 latest_index_file_path = "indices/latest.index"
 
 
-def get_latest_index_time(client):
+def get_latest_index_time():
     """Retrieve the latest index time for product sets."""
     try:
         with open(latest_index_file_path, "r") as f:
@@ -32,18 +32,6 @@ def get_latest_index_time(client):
             return latest_index_time
     except:
         return datetime.min.replace(tzinfo=timezone.utc)
-
-    # try:
-    #     product_sets = client.list_product_sets(
-    #         parent=f"projects/{PROJECT_ID}/locations/{LOCATION}"
-    #     )
-    #     logger.info(f"Found indexed indices {product_sets}")
-    #     latest_index_time = max([product_set.index_time for product_set in product_sets])
-    #     logger.info(f"Latest time indexed: {latest_index_time}")
-    #     return latest_index_time
-    # except ValueError:
-    #     logger.warning("No product sets found. Assuming no prior indexing.")
-    #     return datetime.min  # Default if no index exists
 
 
 def parse_index_date(file_path):
