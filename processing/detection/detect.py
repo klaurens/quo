@@ -16,6 +16,7 @@ from pycocotools import mask as mask_api
 from processing.logger import logger
 from datetime import timedelta
 import time
+import threading
 
 # Load environment variables
 load_dotenv()
@@ -31,6 +32,13 @@ DETECT_MAX_BOXES = os.getenv("DETECT_MAX_BOXES")
 DETECT_MIN_THRESH = os.getenv("DETECT_MIN_THRESH")
 OVERWITE_DETECTION = os.getenv("OVERWITE_DETECTION") == "True"
 OUTPUT_SUBDIR = os.getenv("OUTPUT_SUBDIR")
+
+thread_local = threading.local()
+
+def get_model(model_dir):
+    if not hasattr(thread_local, "model"):
+        thread_local.model = tf.saved_model.load(model_dir)
+    return thread_local.model
 
 
 # def read_labels():
@@ -113,12 +121,13 @@ def visualize_detections(
     return image_with_detections
 
 
-def infer_single_image(image_file):
+def infer_single_image(image_file, model_dir):
     """Performs inference on a single image file and returns detection results."""
     output_dir = os.path.join(os.path.dirname(image_file), OUTPUT_SUBDIR)
     output_path = os.path.join(output_dir, os.path.basename(image_file) + ".npy")
     if os.path.exists(output_path) and not OVERWITE_DETECTION:
         logger.info(f"{output_path} exists, skipping detection")
+        return None
 
     input_tensor, (height, width, _) = process_image(image_file)
     input_tensor = tf.expand_dims(input_tensor, axis=0)
@@ -127,7 +136,8 @@ def infer_single_image(image_file):
         return None  # Skip if image processing failed
 
     try:
-        output_results = MODEL.signatures["serving_default"](input_tensor)
+        model = get_model(model_dir)  # Retrieve thread-specific model instance
+        output_results = model.signatures["serving_default"](input_tensor)
         num_detections = int(output_results["num_detections"][0])
         np_boxes = output_results["detection_boxes"][0, :num_detections]
         np_scores = output_results["detection_scores"][0, :num_detections].numpy()
@@ -189,9 +199,9 @@ def save_detection(result):
 
 
 def main():
-    # Load the model
-    global MODEL
-    MODEL = tf.saved_model.load(MODEL_DIR)
+    # # Load the model
+    # global MODEL
+    # MODEL = tf.saved_model.load(MODEL_DIR)
 
     # label_map_dict = read_labels()
     # image_pattern = "details/**/**/images/*.[jp][pn]g"
@@ -204,7 +214,7 @@ def main():
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {
             # executor.submit(infer_single_image, image_file, label_map_dict, MODEL): image_file
-            executor.submit(infer_single_image, image_file): image_file
+            executor.submit(infer_single_image, image_file, MODEL_DIR): image_file
             for image_file in image_files
         }
         for future in tqdm(futures, desc="Processing images"):
