@@ -8,6 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "sync"))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "indexing")))
 
 import time
+import requests
 from collection import collect
 from extraction import extract
 from detection import detect
@@ -22,10 +23,15 @@ load_dotenv()
 
 SYNC_LOCAL = os.getenv("SYNC_LOCAL") == "True"
 SYNC_GCP = os.getenv("SYNC_GCP") == "True"
-
-ENVIRONMENT = os.getenv("ENVIRONMENT")
-if 'SSH_CLIENT' in os.environ:
-    ENVIRONMENT = 'gcp'
+ENVIRONMENT_TEST_URI = os.get_env("ENVIRONMENT_TEST_URI")
+try:
+    response = requests.get(
+        ENVIRONMENT_TEST_URI, headers={"Metadata-Flavor": "Google"}, timeout=1
+    )
+    if response.ok:
+        ENVIRONMENT = "gcp"
+except requests.RequestException:
+    ENVIRONMENT = "local"
 
 
 if __name__ == "__main__":
@@ -39,7 +45,7 @@ if __name__ == "__main__":
 
         ## collect
         print("Starting Collection")
-        collect.main()
+        # collect.main()
         print("Finished Collection")
 
         ## detection
