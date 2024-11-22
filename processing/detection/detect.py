@@ -113,7 +113,7 @@ def visualize_detections(
     return image_with_detections
 
 
-def infer_single_image(image_file, label_map_dict):
+def infer_single_image(image_file):
     """Performs inference on a single image file and returns detection results."""
     output_dir = os.path.join(os.path.dirname(image_file), OUTPUT_SUBDIR)
     output_path = os.path.join(output_dir, os.path.basename(image_file) + ".npy")
@@ -189,9 +189,8 @@ def save_detection(result):
 
 
 def main():
-
-    global MODEL
     # Load the model
+    global MODEL
     MODEL = tf.saved_model.load(MODEL_DIR)
 
     # label_map_dict = read_labels()
