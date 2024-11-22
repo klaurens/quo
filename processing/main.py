@@ -23,7 +23,7 @@ load_dotenv()
 
 SYNC_LOCAL = os.getenv("SYNC_LOCAL") == "True"
 SYNC_GCP = os.getenv("SYNC_GCP") == "True"
-ENVIRONMENT_TEST_URI = os.get_env("ENVIRONMENT_TEST_URI")
+ENVIRONMENT_TEST_URI = os.getenv("ENVIRONMENT_TEST_URI")
 try:
     response = requests.get(
         ENVIRONMENT_TEST_URI, headers={"Metadata-Flavor": "Google"}, timeout=1

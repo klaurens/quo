@@ -35,8 +35,6 @@ try:
     logger.info("Category mapping loaded successfully.")
 except FileNotFoundError:
     logger.error("Category mapping file not found.")
-except json.JSONDecodeError as e:
-    logger.error(f"Error decoding category mapping: {e}")
 
 
 # Utility Functions
