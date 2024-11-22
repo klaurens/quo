@@ -96,7 +96,7 @@ def update_latest_index_time(index_file):
 
 def main():
     client = vision.ProductSearchClient()
-    latest_index_time = get_latest_index_time(client)
+    latest_index_time = get_latest_index_time()
 
     new_indices = find_new_indices(latest_index_time)
     if not new_indices:

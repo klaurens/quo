@@ -20,6 +20,8 @@ import time
 # Load environment variables
 load_dotenv()
 
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
 # Environment variables
 LABEL_MAP_DIR = os.getenv("LABEL_MAP_DIR")
 LABEL_MAP_FILE = os.getenv("LABEL_MAP_FILE")
@@ -31,22 +33,22 @@ OVERWITE_DETECTION = os.getenv("OVERWITE_DETECTION") == "True"
 OUTPUT_SUBDIR = os.getenv("OUTPUT_SUBDIR")
 
 
-def read_labels():
-    """Reads the label map file and returns a dictionary of labels."""
-    label_map_dict = {}
-    label_map_path = os.path.join(LABEL_MAP_DIR, LABEL_MAP_FILE)
+# def read_labels():
+#     """Reads the label map file and returns a dictionary of labels."""
+#     label_map_dict = {}
+#     label_map_path = os.path.join(LABEL_MAP_DIR, LABEL_MAP_FILE)
 
-    try:
-        with open(label_map_path, "r") as file:
-            lines = file.readlines()
-            for line in lines:
-                key, value = line.strip().split(":")
-                label_map_dict[int(key)] = {"id": int(key), "name": value.strip()}
-        logger.info("Label map loaded successfully.")
-    except Exception as e:
-        logger.error(f"Error reading label map: {e}")
+#     try:
+#         with open(label_map_path, "r") as file:
+#             lines = file.readlines()
+#             for line in lines:
+#                 key, value = line.strip().split(":")
+#                 label_map_dict[int(key)] = {"id": int(key), "name": value.strip()}
+#         logger.info("Label map loaded successfully.")
+#     except Exception as e:
+#         logger.error(f"Error reading label map: {e}")
 
-    return label_map_dict
+#     return label_map_dict
 
 
 def process_image(image_file):
@@ -111,7 +113,7 @@ def visualize_detections(
     return image_with_detections
 
 
-def infer_single_image(image_file, label_map_dict):
+def infer_single_image(image_file, label_map_dict, MODEL):
     """Performs inference on a single image file and returns detection results."""
     output_dir = os.path.join(os.path.dirname(image_file), OUTPUT_SUBDIR)
     output_path = os.path.join(output_dir, os.path.basename(image_file) + ".npy")
@@ -187,17 +189,22 @@ def save_detection(result):
 
 
 def main():
-    label_map_dict = read_labels()
-    image_pattern = "details/**/**/images/*.[jp][pn]g"
+
+    # Load the model
+    MODEL = tf.saved_model.load(MODEL_DIR)
+
+    # label_map_dict = read_labels()
+    # image_pattern = "details/**/**/images/*.[jp][pn]g"
+    image_pattern = os.path.join(ROOT_DIR, "details/**/**/images/*.[jp][pn]g")
     image_files = glob.glob(image_pattern)
-    print(image_files[:50])
     results_lock = threading.Lock()
     results = [0]
 
     # Run inference with a ThreadPoolExecutor for parallel processing
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {
-            executor.submit(infer_single_image, image_file, label_map_dict): image_file
+            # executor.submit(infer_single_image, image_file, label_map_dict, MODEL): image_file
+            executor.submit(infer_single_image, image_file, MODEL): image_file
             for image_file in image_files
         }
         for future in tqdm(futures, desc="Processing images"):
@@ -212,9 +219,6 @@ def main():
 
 
 if __name__ == "__main__":
-
-    # Load the model
-    MODEL = tf.saved_model.load(MODEL_DIR)
 
     start_time = time.time()
 

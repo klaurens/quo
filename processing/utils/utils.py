@@ -19,6 +19,7 @@ ERROR_CODE = os.getenv("ERROR_CODE")
 EXIST_CODE = os.getenv("EXIST_CODE")
 IS_DIR_CODE = os.getenv("IS_DIR_CODE")
 
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 # MAGIC_NUMBERS = {
 #     b"\xFF\xD8": "jpg",
@@ -104,7 +105,7 @@ def download_from_gcs(blob_name, bucket, overwrite=False):
         blob = bucket.blob(blob_name)
 
         # Create the local path
-        local_file_path = blob_name
+        local_file_path = os.path.join(ROOT_DIR, blob_name)
 
         if os.path.exists(local_file_path) and not overwrite:
             logger.info(f"{local_file_path} exists in local")
