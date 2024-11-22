@@ -25,7 +25,7 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 # Environment variables
 LABEL_MAP_DIR = os.getenv("LABEL_MAP_DIR")
 LABEL_MAP_FILE = os.getenv("LABEL_MAP_FILE")
-MODEL_DIR = os.getenv("MODEL_DIR")
+MODEL_DIR = os.path.join(ROOT_DIR, os.getenv("MODEL_DIR"))
 
 DETECT_MAX_BOXES = os.getenv("DETECT_MAX_BOXES")
 DETECT_MIN_THRESH = os.getenv("DETECT_MIN_THRESH")
