@@ -113,7 +113,7 @@ def visualize_detections(
     return image_with_detections
 
 
-def infer_single_image(image_file, label_map_dict, MODEL):
+def infer_single_image(image_file, label_map_dict):
     """Performs inference on a single image file and returns detection results."""
     output_dir = os.path.join(os.path.dirname(image_file), OUTPUT_SUBDIR)
     output_path = os.path.join(output_dir, os.path.basename(image_file) + ".npy")
@@ -190,6 +190,7 @@ def save_detection(result):
 
 def main():
 
+    global MODEL
     # Load the model
     MODEL = tf.saved_model.load(MODEL_DIR)
 
@@ -204,7 +205,7 @@ def main():
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {
             # executor.submit(infer_single_image, image_file, label_map_dict, MODEL): image_file
-            executor.submit(infer_single_image, image_file, MODEL): image_file
+            executor.submit(infer_single_image, image_file): image_file
             for image_file in image_files
         }
         for future in tqdm(futures, desc="Processing images"):
