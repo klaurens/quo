@@ -18,6 +18,8 @@ load_dotenv()
 BUCKET_NAME = os.getenv("BUCKET_NAME")
 OVERWRITE_CLOUD = os.getenv("OVERWRITE_CLOUD") == "True"
 SUCCESS_CODE = os.getenv('SUCCESS_CODE')
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
 
 
 def sync_up(local_file, bucket, upload_lock, upload_count):
@@ -36,9 +38,9 @@ def main(upload_list='all'):
 
     # Define file paths
     file_groups = {
-        'listing': glob.glob("listing/**/*"),
-        'details': glob.glob("details/**/*", recursive=True),
-        'indices': glob.glob("indices/*"),
+        'listing': glob.glob(os.path.join(ROOT_DIR, "listing/**/*")),
+        'details': glob.glob(os.path.join(ROOT_DIR, "details/**/*"), recursive=True),
+        'indices': glob.glob(os.path.join(ROOT_DIR, "indices/*")),
     }
 
     # Select files to upload
