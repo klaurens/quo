@@ -98,10 +98,13 @@ def main():
     client = vision.ProductSearchClient()
     latest_index_time = get_latest_index_time()
 
+    logger.info(f"Finding indices older than {latest_index_file_path}")
     new_indices = find_new_indices(latest_index_time)
     if not new_indices:
         logger.info("No new indices to process.")
         return
+    else:
+        logger.info(f"New indices found: {new_indices}")
 
     logger.info(f"Found {len(new_indices)} new indices to process.")
     for index_file in new_indices:

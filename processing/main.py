@@ -41,6 +41,7 @@ if __name__ == "__main__":
 
         if ENVIRONMENT == "local" and SYNC_LOCAL:
             ## Download from GCP
+            logger.info("GCP Env Detected")
             from_cloud.main()
 
         ## collect
