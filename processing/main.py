@@ -63,7 +63,7 @@ if __name__ == "__main__":
         ## 1. Combine extracted data from extraction with bounding boxes from detection into reference_images.csv file
         ## 2. Create google vision index
         print("Starting Index")
-        create_import_list2.main()
+        # create_import_list2.main()
 
         # Sync
         # upload to gcp if necessary here
