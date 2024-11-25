@@ -84,7 +84,6 @@ def map_category(category):
 
 def display_related_images(segment_similar, tab_name):
     """Display images in the selected tab."""
-            
     product_images = {}
     for related_img in segment_similar:
         product_name = related_img.product.display_name
@@ -101,13 +100,20 @@ def display_related_images(segment_similar, tab_name):
                     "brand": img_loc.split("/")[1],
                     "category": mapped_category,
                     "original_category": category,
-                    "all_images" : img_files[1:] if len(img_files) > 1 else None
+                    "all_images": img_files[1:] if len(img_files) > 1 else []
                 }
 
     num_cols = 7
     max_images = num_cols * 3
     cols = st.columns(num_cols)
-    
+
+    def toggle_item(item):
+        """Toggle item in session state."""
+        if item in st.session_state["selected_items"]:
+            st.session_state["selected_items"].remove(item)
+        else:
+            st.session_state["selected_items"].add(item)
+
     for idx, (p_name, attrs) in enumerate(product_images.items()):
         if idx >= max_images:
             break
@@ -120,14 +126,16 @@ def display_related_images(segment_similar, tab_name):
                 use_column_width=True,
                 caption=f"{p_name}\n{attrs['brand']}\n{attrs['category']}\n{attrs['original_category']}\n{round(attrs['score'], 5)}"
             )
-            if primary_image in st.session_state["selected_items"]:
-                if st.button(f"Remove Item", key=f"toggle_{p_name}"):
-                    st.session_state["selected_items"].remove(primary_image)
-            else:
-                if st.button(f"Add Item", key=f"toggle_{p_name}"):
-                    st.session_state["selected_items"].add(primary_image)
-            
-            # Place expander directly under the image, confined to the column
+            # Create toggle button
+            toggle_label = "Remove Item" if primary_image in st.session_state["selected_items"] else "Add Item"
+            st.button(
+                toggle_label, 
+                key=f"toggle_{p_name}", 
+                on_click=toggle_item, 
+                args=(primary_image,)
+            )
+
+            # Place expander directly under the image
             with st.expander("More Images", expanded=False):
                 for other_img_path in attrs['all_images']:
                     st.image(other_img_path, use_column_width=True)
@@ -139,7 +147,7 @@ if "selected_items" not in st.session_state:
     st.session_state["selected_items"] = set()
 # Initialize the session state if not already done
 if st.session_state["selected_items"]:
-    for item in st.session_state["selected_items"]:
+    for item in sorted(st.session_state["selected_items"]):
         st.sidebar.image(item)
 else:
     st.sidebar.write("No items selected")
