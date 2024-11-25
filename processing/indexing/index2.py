@@ -20,6 +20,7 @@ LOCATION = os.getenv("LOCATION")
 DATETIME_FORMAT = os.getenv("DATETIME_FORMAT")
 
 latest_index_file_path = "indices/latest.index"
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
 def get_latest_index_time():
@@ -49,7 +50,7 @@ def parse_index_date(file_path):
 
 def find_new_indices(latest_index_time):
     """Find indices with dates newer than the latest indexed time."""
-    index_files = glob.glob("indices/*.csv")
+    index_files = glob.glob(os.path.join(ROOT_DIR, "indices/*.csv"))
     if not latest_index_time:
         return index_files
     new_indices = sorted([
