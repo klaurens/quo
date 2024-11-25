@@ -65,7 +65,7 @@ def main(upload_list='all'):
     def sync_with_lock(file_path):
         nonlocal upload_count
         try:
-            sync_up(file_path, bucket)
+            sync_up(file_path, bucket, upload_lock, upload_count)
             with upload_lock:
                 upload_count += 1
         except Exception as e:

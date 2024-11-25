@@ -23,6 +23,7 @@ load_dotenv()
 
 SYNC_LOCAL = os.getenv("SYNC_LOCAL") == "True"
 SYNC_GCP = os.getenv("SYNC_GCP") == "True"
+SYNC_INDICES = os.getenv("SYNC_GCP") == "True"
 ENVIRONMENT_TEST_URI = os.getenv("ENVIRONMENT_TEST_URI")
 try:
     response = requests.get(
@@ -41,8 +42,10 @@ if __name__ == "__main__":
 
         if ENVIRONMENT == "local" and SYNC_LOCAL:
             ## Download from GCP
-            logger.info("GCP Env Detected")
+            logger.info("Local Env Detected, syncing from cloud")
             from_cloud.main()
+        else:
+            logger.info("GCP Env Detected")
 
         ## collect
         print("Starting Collection")
@@ -68,7 +71,9 @@ if __name__ == "__main__":
 
         # Sync
         # upload to gcp if necessary here
-        to_cloud.main(upload_list=["indices"])
+        if ENVIRONMENT == "local" and SYNC_INDICES:
+            logger.info("Local Env Detected, syncing indices to cloud")
+            to_cloud.main(upload_list=["indices"])
 
         index2.main()
         print("Finished Index")
