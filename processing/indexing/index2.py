@@ -40,6 +40,7 @@ def parse_index_date(file_path):
         index_date_str = file_path.split("_")[2]
         index_date = datetime.strptime(index_date_str, DATETIME_FORMAT)
         tz_date = index_date.replace(tzinfo=timezone.utc)  # Make it offset-aware
+        logger.info(f"Index {file_path} dated at {tz_date}")
         return tz_date
     except (IndexError, ValueError) as e:
         logger.error(f"Error parsing date from file {file_path}: {e}")
@@ -51,17 +52,20 @@ def find_new_indices(latest_index_time):
     index_files = glob.glob("indices/*.csv")
     if not latest_index_time:
         return index_files
-    return [
+    new_indices = sorted([
         index_file
         for index_file in index_files
         if (index_date := parse_index_date(index_file))
         and index_date > latest_index_time
-    ]
+    ])
+    logger.info(f"Valid indices to index found: {new_indices}")
+    return new_indices
 
 
 def import_product_set(client, index_path):
     """Import a product set from a given index file."""
     try:
+        logger.info(f"Indexing {index_path}")
         location_path = f"projects/{PROJECT_ID}/locations/{LOCATION}"
         csv_file_uri = f"gs://{BUCKET_NAME}/{index_path}"
 
