@@ -20,7 +20,8 @@ CATEGORY_MAPPING = {
     "jeans": ["shorts", "pants"],
     "culottes": ["shorts", "pants"],
     "shorts": ["shorts", "pants"],
-    "skirt": ["skirt"],
+    "skirt": ["skirt", "miniskirt"],
+    "miniskirt": ["skirt", "miniskirt"],
     "dress": ["dress"],
     "midi dress": ["dress"],
     "mini dress": ["dress"],
@@ -82,7 +83,15 @@ def map_category(category):
             return key
     return category
 
-def display_related_images(segment_similar, tab_name):
+def toggle_item(item):
+    """Toggle item in session state."""
+    if item in st.session_state["selected_items"]:
+        st.session_state["selected_items"].remove(item)
+    else:
+        st.session_state["selected_items"].add(item)
+
+
+def display_related_images(segment_similar, tab_name, tab_order):
     """Display images in the selected tab."""
     product_images = {}
     for related_img in segment_similar:
@@ -107,13 +116,6 @@ def display_related_images(segment_similar, tab_name):
     max_images = num_cols * 3
     cols = st.columns(num_cols)
 
-    def toggle_item(item):
-        """Toggle item in session state."""
-        if item in st.session_state["selected_items"]:
-            st.session_state["selected_items"].remove(item)
-        else:
-            st.session_state["selected_items"].add(item)
-
     for idx, (p_name, attrs) in enumerate(product_images.items()):
         if idx >= max_images:
             break
@@ -123,14 +125,14 @@ def display_related_images(segment_similar, tab_name):
                 img_data = f.read()
             st.image(
                 img_data,
-                use_column_width=True,
+                use_container_width=True,
                 caption=f"{p_name}\n{attrs['brand']}\n{attrs['category']}\n{attrs['original_category']}\n{round(attrs['score'], 5)}"
             )
             # Create toggle button
             toggle_label = "Remove Item" if primary_image in st.session_state["selected_items"] else "Add Item"
             st.button(
                 toggle_label, 
-                key=f"toggle_{p_name}", 
+                key=f"toggle_{p_name}_{tab_order}", 
                 on_click=toggle_item, 
                 args=(primary_image,)
             )
@@ -138,7 +140,7 @@ def display_related_images(segment_similar, tab_name):
             # Place expander directly under the image
             with st.expander("More Images", expanded=False):
                 for other_img_path in attrs['all_images']:
-                    st.image(other_img_path, use_column_width=True)
+                    st.image(other_img_path, use_container_width=True)
 
 # Streamlit UI
 st.set_page_config(layout="wide")
@@ -149,6 +151,12 @@ if "selected_items" not in st.session_state:
 if st.session_state["selected_items"]:
     for item in sorted(st.session_state["selected_items"]):
         st.sidebar.image(item)
+        st.sidebar.button(
+            "Remove Item", 
+            key=f"toggle_{item}_sidebar", 
+            on_click=toggle_item, 
+            args=(item,)
+        )
 else:
     st.sidebar.write("No items selected")
 
@@ -172,7 +180,7 @@ elif image_url:
         st.error(f"Error loading image from URL: {e}")
 
 if input_image:
-    st.image(input_image, caption="Input Image", use_column_width="auto")
+    st.image(input_image, caption="Input Image", use_container_width="auto")
     index = st.selectbox("Select an Index", ('test-set', 'set_A', 'set_B'))
     related_images, segments = get_similar_products_file(
         project_id="argon-producer-437209-a7",
@@ -184,11 +192,11 @@ if input_image:
     segmented_images = segment_images(segments, img_array.shape, img_array)
     seg_cols = st.columns(len(segments))
     for idx, (seg_img, annot) in enumerate(segmented_images):
-        seg_cols[idx % 5].image(seg_img, use_column_width="auto", caption=f"{annot.name}\n{round(annot.score, 5)}")
+        seg_cols[idx % 5].image(seg_img, use_container_width="auto", caption=f"{annot.name}\n{round(annot.score, 5)}")
     
     st.write("Similar Images:")
     tab_names = [s.object_annotations[0].name for s in segments]
     similar_tabs = st.tabs(tab_names)
     for i, tab in enumerate(similar_tabs):
         with tab:
-            display_related_images(segments[i].results, tab_names[i])
+            display_related_images(segments[i].results, tab_names[i], i)
