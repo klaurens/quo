@@ -5,6 +5,8 @@ streamlit
 matplotlib
 jsonpath-ng
 python-dotenv
+numpy
+polars
 
 # detection
 tensorflow[and-cuda]==2.17
@@ -13,3 +15,8 @@ Pillow
 pycocotools
 tqdm
 opencv-python-headless
+
+# # Jupyter / Local only
+# jupyter
+# opencv#==4.10.0
+# black

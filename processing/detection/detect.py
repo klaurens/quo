@@ -210,8 +210,10 @@ def main():
     results_lock = threading.Lock()
     results = [0]
 
+    tf.config.run_functions_eagerly(True)
+
     # Run inference with a ThreadPoolExecutor for parallel processing
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=4) as executor:
         futures = {
             # executor.submit(infer_single_image, image_file, label_map_dict, MODEL): image_file
             executor.submit(infer_single_image, image_file, MODEL_DIR): image_file

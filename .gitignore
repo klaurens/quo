@@ -171,3 +171,4 @@ model/
 argon*.json
 indices/
 logs/*
+sessions/
